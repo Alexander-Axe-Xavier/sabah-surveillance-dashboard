@@ -668,38 +668,39 @@
 
     .time-chart-shell {
       width: 100%;
-      overflow-x: auto;
-      padding: 8px 6px 16px;
+      overflow: hidden;
+      padding: 8px 8px 14px;
     }
 
     .time-chart {
-      min-width: 760px;
-      height: 420px;
+      width: 100%;
+      height: 430px;
       display: grid;
       grid-template-rows: 1fr auto;
-      gap: 10px;
+      gap: 8px;
     }
 
     .time-chart-plot {
-      display: flex;
-      align-items: stretch;
-      gap: 10px;
-      min-height: 350px;
-      padding: 18px 12px 0 42px;
+      width: 100%;
+      display: grid;
+      align-items: end;
+      gap: 2px;
+      min-height: 340px;
+      padding: 18px 8px 0 42px;
       border-left: 1px solid var(--border);
       border-bottom: 1px solid var(--border);
       background:
         repeating-linear-gradient(
           to top,
           transparent 0,
-          transparent 69px,
-          #e9eef4 70px
+          transparent 67px,
+          #e9eef4 68px
         );
     }
 
     .time-period-group {
-      flex: 1 0 44px;
-      min-width: 44px;
+      min-width: 0;
+      height: 100%;
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
@@ -712,15 +713,23 @@
       display: flex;
       align-items: flex-end;
       justify-content: center;
-      gap: 3px;
+    }
+
+    .time-stack {
+      width: min(72%, 15px);
+      min-width: 4px;
+      height: 100%;
+      display: flex;
+      flex-direction: column-reverse;
+      justify-content: flex-start;
+      margin: 0 auto;
+      border-radius: 4px 4px 0 0;
+      overflow: hidden;
     }
 
     .time-bar {
-      flex: 1 1 0;
-      max-width: 22px;
-      min-width: 5px;
-      border-radius: 5px 5px 0 0;
-      background: var(--primary);
+      width: 100%;
+      min-height: 0;
       position: relative;
       cursor: default;
       transition: opacity 0.15s ease;
@@ -731,42 +740,66 @@
     }
 
     .time-period-label {
-      margin-top: 8px;
-      font-size: 0.68rem;
+      margin-top: 5px;
+      font-size: 0.56rem;
       color: var(--muted);
       text-align: center;
-      transform: rotate(-45deg);
-      transform-origin: top center;
       white-space: nowrap;
-      height: 52px;
+      line-height: 1;
+      height: 14px;
+    }
+
+    .time-period-label.major {
+      font-weight: 800;
+      color: var(--text);
     }
 
     .chart-legend {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px 14px;
-      padding: 8px 12px 0;
+      gap: 6px 12px;
+      padding: 7px 10px 0;
     }
 
     .legend-item {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      font-size: 0.74rem;
+      gap: 5px;
+      font-size: 0.7rem;
       color: var(--muted);
     }
 
     .legend-swatch {
-      width: 10px;
-      height: 10px;
-      border-radius: 3px;
+      width: 9px;
+      height: 9px;
+      border-radius: 2px;
       background: var(--primary);
     }
 
     .chart-note {
-      padding: 0 12px 10px;
+      padding: 2px 10px 8px;
       color: var(--muted);
-      font-size: 0.76rem;
+      font-size: 0.74rem;
+    }
+
+    @media (max-width: 700px) {
+      .time-chart {
+        height: 360px;
+      }
+
+      .time-chart-plot {
+        min-height: 280px;
+        padding-left: 24px;
+        gap: 1px;
+      }
+
+      .time-period-label {
+        font-size: 0.48rem;
+      }
+
+      .time-stack {
+        width: min(82%, 10px);
+      }
     }
 
   </style>
@@ -1967,14 +2000,96 @@
       records,
       analysis
     ) {
+      const isMonthly =
+        records.some(
+          function (record) {
+            return (
+              record.Period_Type ===
+              'MONTHLY'
+            );
+          }
+        );
+
+      const availablePeriods =
+        records
+          .map(
+            function (record) {
+              return record.Period_Key || '';
+            }
+          )
+          .filter(Boolean)
+          .sort();
+
+      const latestPeriod =
+        availablePeriods[
+          availablePeriods.length - 1
+        ] || '';
+
+      const selectedYear =
+        latestPeriod
+          ? latestPeriod.substring(0, 4)
+          : String(
+              new Date().getFullYear()
+            );
+
+      const periods = [];
+
+      if (isMonthly) {
+        for (
+          let month = 1;
+          month <= 12;
+          month++
+        ) {
+          periods.push(
+            selectedYear +
+            '-' +
+            String(month).padStart(
+              2,
+              '0'
+            )
+          );
+        }
+      } else {
+        for (
+          let week = 1;
+          week <= 52;
+          week++
+        ) {
+          periods.push(
+            selectedYear +
+            '-W' +
+            String(week).padStart(
+              2,
+              '0'
+            )
+          );
+        }
+      }
+
       const byPeriod = {};
       const seriesTotals = {};
+
+      periods.forEach(
+        function (period) {
+          byPeriod[period] = {};
+        }
+      );
 
       records.forEach(
         function (record) {
           const period =
-            record.Period_Key ||
-            'Unknown';
+            record.Period_Key || '';
+
+          if (
+            !period ||
+            period.substring(0, 4) !==
+              selectedYear ||
+            !byPeriod[
+              period
+            ]
+          ) {
+            return;
+          }
 
           let series =
             'Sabah';
@@ -2005,10 +2120,6 @@
               record.District_Code;
           }
 
-          if (!byPeriod[period]) {
-            byPeriod[period] = {};
-          }
-
           byPeriod[period][series] =
             Number(
               byPeriod[period][series] ||
@@ -2029,13 +2140,6 @@
         }
       );
 
-      const periods =
-        Object.keys(
-          byPeriod
-        )
-          .sort()
-          .slice(-30);
-
       let seriesNames =
         Object.keys(
           seriesTotals
@@ -2049,11 +2153,6 @@
             }
           );
 
-      /*
-       * Keep grouped charts readable. The selected district normally
-       * contains only its sentinel facilities. Aetiology views show the
-       * eight most important positive categories.
-       */
       const maximumSeries =
         (
           APP.analysis ===
@@ -2072,27 +2171,43 @@
           maximumSeries
         );
 
-      let maximum = 0;
+      if (!seriesNames.length) {
+        seriesNames = [
+          'No data'
+        ];
+      }
+
+      let maximumTotal = 0;
 
       periods.forEach(
         function (period) {
-          seriesNames.forEach(
-            function (series) {
-              maximum =
-                Math.max(
-                  maximum,
+          const total =
+            seriesNames.reduce(
+              function (
+                sum,
+                series
+              ) {
+                return (
+                  sum +
                   Number(
                     byPeriod[period][series] ||
                     0
                   )
                 );
-            }
-          );
+              },
+              0
+            );
+
+          maximumTotal =
+            Math.max(
+              maximumTotal,
+              total
+            );
         }
       );
 
-      maximum =
-        maximum || 1;
+      maximumTotal =
+        maximumTotal || 1;
 
       const barColours = [
         '#1d5f8a',
@@ -2109,8 +2224,41 @@
 
       const plot =
         periods.map(
-          function (period) {
-            const bars =
+          function (
+            period,
+            periodIndex
+          ) {
+            const total =
+              seriesNames.reduce(
+                function (
+                  sum,
+                  series
+                ) {
+                  return (
+                    sum +
+                    Number(
+                      byPeriod[period][series] ||
+                      0
+                    )
+                  );
+                },
+                0
+              );
+
+            const stackHeight =
+              Math.max(
+                0,
+                Math.min(
+                  100,
+                  (
+                    total /
+                    maximumTotal
+                  ) *
+                  100
+                )
+              );
+
+            const segments =
               seriesNames.map(
                 function (
                   series,
@@ -2122,23 +2270,19 @@
                       0
                     );
 
-                  const height =
-                    Math.max(
-                      0,
-                      Math.min(
-                        100,
-                        (
+                  const segmentHeight =
+                    total > 0
+                      ? (
                           value /
-                          maximum
+                          total
                         ) *
                         100
-                      )
-                    );
+                      : 0;
 
                   return (
                     '<div class="time-bar" ' +
                     'style="height:' +
-                    height.toFixed(2) +
+                    segmentHeight.toFixed(3) +
                     '%;background:' +
                     barColours[
                       index %
@@ -2157,13 +2301,48 @@
                 }
               ).join('');
 
+            let label;
+
+            if (isMonthly) {
+              label =
+                String(
+                  periodIndex + 1
+                );
+            } else {
+              label =
+                String(
+                  periodIndex + 1
+                );
+            }
+
+            const major =
+              isMonthly
+                ? true
+                : (
+                    periodIndex === 0 ||
+                    (
+                      periodIndex + 1
+                    ) % 4 === 0 ||
+                    periodIndex === 51
+                  );
+
             return (
               '<div class="time-period-group">' +
                 '<div class="time-bars">' +
-                  bars +
+                  '<div class="time-stack" style="height:' +
+                    stackHeight.toFixed(2) +
+                  '%">' +
+                    segments +
+                  '</div>' +
                 '</div>' +
-                '<div class="time-period-label">' +
-                  escapeHtml(period) +
+                '<div class="time-period-label' +
+                  (
+                    major
+                      ? ' major'
+                      : ''
+                  ) +
+                '">' +
+                  escapeHtml(label) +
                 '</div>' +
               '</div>'
             );
@@ -2171,34 +2350,51 @@
         ).join('');
 
       const legend =
-        seriesNames.map(
-          function (
-            series,
-            index
-          ) {
-            return (
-              '<span class="legend-item">' +
-                '<span class="legend-swatch" style="background:' +
-                  barColours[
-                    index %
-                    barColours.length
-                  ] +
-                '"></span>' +
-                escapeHtml(series) +
-              '</span>'
-            );
-          }
-        ).join('');
+        seriesNames
+          .filter(
+            function (series) {
+              return series !==
+                'No data';
+            }
+          )
+          .map(
+            function (
+              series,
+              index
+            ) {
+              return (
+                '<span class="legend-item">' +
+                  '<span class="legend-swatch" style="background:' +
+                    barColours[
+                      index %
+                      barColours.length
+                    ] +
+                  '"></span>' +
+                  escapeHtml(series) +
+                '</span>'
+              );
+            }
+          ).join('');
 
       let note =
-        'Vertical bars show values by reporting period.';
+        isMonthly
+          ? (
+              'January to December ' +
+              selectedYear +
+              '. All 12 months are shown without scrolling.'
+            )
+          : (
+              'Epidemiological Week 1 to Week 52 for ' +
+              selectedYear +
+              '. Missing weeks are displayed as zero so the annual sequence remains complete.'
+            );
 
       if (
         APP.district &&
         !APP.facility
       ) {
-        note =
-          'District selected: each colour represents one sentinel/facility in ' +
+        note +=
+          ' Each stacked colour represents one sentinel/facility in ' +
           APP.district +
           '.';
       }
@@ -2211,14 +2407,16 @@
         APP.analysis ===
           'EVL_AETIOLOGY'
       ) {
-        note =
-          'Laboratory trend includes positive samples only, grouped by Aetiology.';
+        note +=
+          ' Laboratory bars include positive samples only and are stacked by Aetiology.';
       }
 
       ELEMENTS.mainChart.innerHTML =
         '<div class="time-chart-shell">' +
           '<div class="time-chart">' +
-            '<div class="time-chart-plot">' +
+            '<div class="time-chart-plot" style="grid-template-columns:repeat(' +
+              periods.length +
+              ',minmax(0,1fr))">' +
               plot +
             '</div>' +
             '<div>' +
