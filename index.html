@@ -665,6 +665,110 @@
       flex-wrap: wrap;
     }
 
+
+    .time-chart-shell {
+      width: 100%;
+      overflow-x: auto;
+      padding: 8px 6px 16px;
+    }
+
+    .time-chart {
+      min-width: 760px;
+      height: 420px;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      gap: 10px;
+    }
+
+    .time-chart-plot {
+      display: flex;
+      align-items: stretch;
+      gap: 10px;
+      min-height: 350px;
+      padding: 18px 12px 0 42px;
+      border-left: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background:
+        repeating-linear-gradient(
+          to top,
+          transparent 0,
+          transparent 69px,
+          #e9eef4 70px
+        );
+    }
+
+    .time-period-group {
+      flex: 1 0 44px;
+      min-width: 44px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: stretch;
+      position: relative;
+    }
+
+    .time-bars {
+      height: 100%;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 3px;
+    }
+
+    .time-bar {
+      flex: 1 1 0;
+      max-width: 22px;
+      min-width: 5px;
+      border-radius: 5px 5px 0 0;
+      background: var(--primary);
+      position: relative;
+      cursor: default;
+      transition: opacity 0.15s ease;
+    }
+
+    .time-bar:hover {
+      opacity: 0.78;
+    }
+
+    .time-period-label {
+      margin-top: 8px;
+      font-size: 0.68rem;
+      color: var(--muted);
+      text-align: center;
+      transform: rotate(-45deg);
+      transform-origin: top center;
+      white-space: nowrap;
+      height: 52px;
+    }
+
+    .chart-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      padding: 8px 12px 0;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.74rem;
+      color: var(--muted);
+    }
+
+    .legend-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      background: var(--primary);
+    }
+
+    .chart-note {
+      padding: 0 12px 10px;
+      color: var(--muted);
+      font-size: 0.76rem;
+    }
+
   </style>
 </head>
 
@@ -847,7 +951,9 @@
       period: '',
       analysis: '',
       scope: 'STATE',
-      apiUrl: ''
+      apiUrl: '',
+      autoRefreshMinutes: 5,
+      autoRefreshTimer: null
     };
 
     const MODULE_CONFIG = {
@@ -961,6 +1067,7 @@
         cacheElements();
         bindEvents();
         initialiseStaticDashboard();
+        startAutoRefresh();
       }
     );
 
@@ -1215,6 +1322,117 @@
     }
 
 
+    function startAutoRefresh() {
+      if (APP.autoRefreshTimer) {
+        clearInterval(
+          APP.autoRefreshTimer
+        );
+      }
+
+      APP.autoRefreshTimer =
+        setInterval(
+          function () {
+            if (
+              APP.apiUrl &&
+              document.visibilityState ===
+                'visible'
+            ) {
+              refreshCurrentViewSilently();
+            }
+          },
+          APP.autoRefreshMinutes *
+          60 *
+          1000
+        );
+    }
+
+
+    async function refreshCurrentViewSilently() {
+      try {
+        const analysis =
+          getCurrentAnalysisConfig();
+
+        const effectiveScope =
+          getEffectiveScope();
+
+        const payload =
+          await apiRequest({
+            api:
+              'view',
+
+            module:
+              APP.module,
+
+            section:
+              analysis.value,
+
+            metric:
+              analysis.metric,
+
+            district:
+              APP.district,
+
+            facility:
+              APP.facility,
+
+            scope:
+              effectiveScope,
+
+            period:
+              APP.period
+          });
+
+        APP.moduleData = {
+          sections: {},
+          availableDistricts:
+            payload.districts || [],
+          availableFacilities:
+            payload.facilities || [],
+          availablePeriods:
+            payload.periods || []
+        };
+
+        APP.moduleData.sections[
+          analysis.value
+        ] =
+          payload.records || [];
+
+        renderDashboard();
+        setLastUpdated(
+          payload.sourceUpdatedAt
+        );
+
+        setStatus(
+          'Ready',
+          'ready'
+        );
+
+      } catch (error) {
+        console.warn(
+          'Automatic refresh failed.',
+          error
+        );
+      }
+    }
+
+
+    function getEffectiveScope() {
+      /*
+       * Required drill-down:
+       * choosing a district automatically displays its sentinel/facility
+       * trend. Choosing a facility keeps the facility-level trend.
+       */
+      if (
+        APP.facility ||
+        APP.district
+      ) {
+        return 'FACILITY';
+      }
+
+      return APP.scope;
+    }
+
+
     async function loadBootstrap() {
       showLoading(
         'Loading dashboard',
@@ -1308,7 +1526,7 @@
               APP.facility,
 
             scope:
-              APP.scope,
+              getEffectiveScope(),
 
             period:
               APP.period
@@ -1719,14 +1937,8 @@
       const analysis =
         getCurrentAnalysisConfig();
 
-      const allRecords =
+      const records =
         getCurrentRecords();
-
-      const scoped =
-        filterByScope(
-          allRecords,
-          APP.scope
-        );
 
       ELEMENTS.chartTitle.textContent =
         analysis.label;
@@ -1734,57 +1946,82 @@
       ELEMENTS.chartSubtitle.textContent =
         buildSubtitle();
 
-      if (!scoped.length) {
+      if (!records.length) {
         ELEMENTS.mainChart.innerHTML =
           '<div class="empty-state">' +
           '<div><strong>No prepared records found.</strong><br>' +
-          'Try a different scope or remove filters.</div>' +
+          'Try another district, facility, period, or analysis.</div>' +
           '</div>';
 
         return;
       }
 
-      if (
-        APP.analysis === 'ILI_PISA' ||
-        APP.analysis === 'AGE_ENDEMIC'
-      ) {
-        drawThresholdBarChart(
-          scoped
-        );
-
-        return;
-      }
-
-      if (
-        APP.analysis === 'ILIL_AETIOLOGY' ||
-        APP.analysis === 'SARIL_AETIOLOGY' ||
-        APP.analysis === 'EVL_AETIOLOGY'
-      ) {
-        drawAetiologyBarChart(
-          scoped
-        );
-
-        return;
-      }
-
-      drawTrendBarChart(
-        scoped
+      drawVerticalTimeBarChart(
+        records,
+        analysis
       );
     }
 
-    function drawTrendBarChart(records) {
-      const grouped = {};
+
+    function drawVerticalTimeBarChart(
+      records,
+      analysis
+    ) {
+      const byPeriod = {};
+      const seriesTotals = {};
 
       records.forEach(
         function (record) {
-          const key =
+          const period =
             record.Period_Key ||
-            record.Category ||
             'Unknown';
 
-          grouped[key] =
+          let series =
+            'Sabah';
+
+          if (
+            APP.analysis ===
+              'ILIL_AETIOLOGY' ||
+            APP.analysis ===
+              'SARIL_AETIOLOGY' ||
+            APP.analysis ===
+              'EVL_AETIOLOGY'
+          ) {
+            series =
+              record.Category ||
+              'Unspecified';
+
+          } else if (
+            record.Facility_ID
+          ) {
+            series =
+              record.Category ||
+              record.Facility_ID;
+
+          } else if (
+            record.District_Code
+          ) {
+            series =
+              record.District_Code;
+          }
+
+          if (!byPeriod[period]) {
+            byPeriod[period] = {};
+          }
+
+          byPeriod[period][series] =
             Number(
-              grouped[key] || 0
+              byPeriod[period][series] ||
+              0
+            ) +
+            Number(
+              record.Numeric_Value || 0
+            );
+
+          seriesTotals[series] =
+            Number(
+              seriesTotals[series] ||
+              0
             ) +
             Number(
               record.Numeric_Value || 0
@@ -1792,186 +2029,210 @@
         }
       );
 
-      const rows =
-        Object.keys(grouped)
+      const periods =
+        Object.keys(
+          byPeriod
+        )
           .sort()
-          .slice(-30)
-          .map(
-            function (key) {
-              return [
-                key,
-                grouped[key]
-              ];
-            }
-          );
+          .slice(-30);
 
-      drawBarChart(
-        [
-          ['Period', 'Value']
-        ].concat(rows),
-        'Period'
-      );
-    }
-
-    function drawAetiologyBarChart(records) {
-      const grouped = {};
-
-      records.forEach(
-        function (record) {
-          const key =
-            record.Category ||
-            'Unspecified';
-
-          grouped[key] =
-            Number(
-              grouped[key] || 0
-            ) +
-            Number(
-              record.Numeric_Value || 0
-            );
-        }
-      );
-
-      const rows =
-        Object.keys(grouped)
+      let seriesNames =
+        Object.keys(
+          seriesTotals
+        )
           .sort(
             function (left, right) {
               return (
-                grouped[right] -
-                grouped[left]
+                seriesTotals[right] -
+                seriesTotals[left]
               );
-            }
-          )
-          .slice(0, 20)
-          .map(
-            function (key) {
-              return [
-                key,
-                grouped[key]
-              ];
             }
           );
 
-      drawBarChart(
-        [
-          ['Aetiology', 'Positive samples']
-        ].concat(rows),
-        'Aetiology'
-      );
-    }
+      /*
+       * Keep grouped charts readable. The selected district normally
+       * contains only its sentinel facilities. Aetiology views show the
+       * eight most important positive categories.
+       */
+      const maximumSeries =
+        (
+          APP.analysis ===
+            'ILIL_AETIOLOGY' ||
+          APP.analysis ===
+            'SARIL_AETIOLOGY' ||
+          APP.analysis ===
+            'EVL_AETIOLOGY'
+        )
+          ? 8
+          : 10;
 
-    function drawThresholdBarChart(records) {
-      const actualMetric =
-        APP.analysis === 'ILI_PISA'
-          ? 'ACTUAL_CONSULTATION_RATE'
-          : 'ACTUAL_AGE_CASES';
-
-      const actual =
-        records.filter(
-          function (record) {
-            return (
-              record.Metric ===
-              actualMetric
-            );
-          }
+      seriesNames =
+        seriesNames.slice(
+          0,
+          maximumSeries
         );
 
-      const rows =
-        actual
-          .sort(
-            function (left, right) {
-              return left.Period_Key.localeCompare(
-                right.Period_Key
-              );
-            }
-          )
-          .slice(-30)
-          .map(
-            function (record) {
-              return [
-                record.Period_Key,
-                Number(
-                  record.Numeric_Value || 0
-                )
-              ];
+      let maximum = 0;
+
+      periods.forEach(
+        function (period) {
+          seriesNames.forEach(
+            function (series) {
+              maximum =
+                Math.max(
+                  maximum,
+                  Number(
+                    byPeriod[period][series] ||
+                    0
+                  )
+                );
             }
           );
-
-      drawBarChart(
-        [
-          ['Period', 'Observed value']
-        ].concat(rows),
-        'Period'
+        }
       );
-    }
 
-    function drawBarChart(rows, axisTitle) {
-      const dataRows =
-        rows.slice(1);
+      maximum =
+        maximum || 1;
 
-      if (!dataRows.length) {
-        ELEMENTS.mainChart.innerHTML =
-          '<div class="empty-state">' +
-          '<div>No chart data are available.</div>' +
-          '</div>';
-        return;
-      }
+      const barColours = [
+        '#1d5f8a',
+        '#18a27b',
+        '#d89b2b',
+        '#8c5fb5',
+        '#c94f4f',
+        '#3f7fc4',
+        '#6b8e23',
+        '#d16d9e',
+        '#7c6f64',
+        '#4b9b9b'
+      ];
 
-      const maximum =
-        Math.max.apply(
-          null,
-          dataRows.map(
-            function (row) {
-              return Number(row[1] || 0);
-            }
-          )
-        ) || 1;
+      const plot =
+        periods.map(
+          function (period) {
+            const bars =
+              seriesNames.map(
+                function (
+                  series,
+                  index
+                ) {
+                  const value =
+                    Number(
+                      byPeriod[period][series] ||
+                      0
+                    );
 
-      const limited =
-        dataRows.slice(-30);
+                  const height =
+                    Math.max(
+                      0,
+                      Math.min(
+                        100,
+                        (
+                          value /
+                          maximum
+                        ) *
+                        100
+                      )
+                    );
 
-      ELEMENTS.mainChart.innerHTML =
-        '<div class="native-chart" aria-label="' +
-        escapeHtml(axisTitle) +
-        ' bar chart">' +
-        limited.map(
-          function (row) {
-            const label =
-              String(row[0] || '');
-
-            const value =
-              Number(row[1] || 0);
-
-            const width =
-              Math.max(
-                0,
-                Math.min(
-                  100,
-                  (value / maximum) * 100
-                )
-              );
+                  return (
+                    '<div class="time-bar" ' +
+                    'style="height:' +
+                    height.toFixed(2) +
+                    '%;background:' +
+                    barColours[
+                      index %
+                      barColours.length
+                    ] +
+                    '" title="' +
+                    escapeHtml(
+                      period +
+                      ' · ' +
+                      series +
+                      ': ' +
+                      formatNumber(value)
+                    ) +
+                    '"></div>'
+                  );
+                }
+              ).join('');
 
             return (
-              '<div class="native-bar-row">' +
-                '<div class="native-bar-label" title="' +
-                  escapeHtml(label) +
-                '">' +
-                  escapeHtml(label) +
+              '<div class="time-period-group">' +
+                '<div class="time-bars">' +
+                  bars +
                 '</div>' +
-                '<div class="native-bar-track">' +
-                  '<div class="native-bar-fill" style="width:' +
-                    width.toFixed(2) +
-                  '%"></div>' +
-                '</div>' +
-                '<div class="native-bar-value">' +
-                  escapeHtml(formatNumber(value)) +
+                '<div class="time-period-label">' +
+                  escapeHtml(period) +
                 '</div>' +
               '</div>'
             );
           }
-        ).join('') +
+        ).join('');
+
+      const legend =
+        seriesNames.map(
+          function (
+            series,
+            index
+          ) {
+            return (
+              '<span class="legend-item">' +
+                '<span class="legend-swatch" style="background:' +
+                  barColours[
+                    index %
+                    barColours.length
+                  ] +
+                '"></span>' +
+                escapeHtml(series) +
+              '</span>'
+            );
+          }
+        ).join('');
+
+      let note =
+        'Vertical bars show values by reporting period.';
+
+      if (
+        APP.district &&
+        !APP.facility
+      ) {
+        note =
+          'District selected: each colour represents one sentinel/facility in ' +
+          APP.district +
+          '.';
+      }
+
+      if (
+        APP.analysis ===
+          'ILIL_AETIOLOGY' ||
+        APP.analysis ===
+          'SARIL_AETIOLOGY' ||
+        APP.analysis ===
+          'EVL_AETIOLOGY'
+      ) {
+        note =
+          'Laboratory trend includes positive samples only, grouped by Aetiology.';
+      }
+
+      ELEMENTS.mainChart.innerHTML =
+        '<div class="time-chart-shell">' +
+          '<div class="time-chart">' +
+            '<div class="time-chart-plot">' +
+              plot +
+            '</div>' +
+            '<div>' +
+              '<div class="chart-legend">' +
+                legend +
+              '</div>' +
+              '<div class="chart-note">' +
+                escapeHtml(note) +
+              '</div>' +
+            '</div>' +
+          '</div>' +
         '</div>';
     }
+
 
     function renderIntelligence() {
       const records =
@@ -2124,7 +2385,7 @@
       const records =
         filterByScope(
           getCurrentRecords(),
-          APP.scope
+          getEffectiveScope()
         );
 
       const grouped = {};
@@ -2295,7 +2556,9 @@
         parts.push(APP.period);
       }
 
-      parts.push(APP.scope);
+      parts.push(
+        getEffectiveScope()
+      );
 
       return parts.join(' · ');
     }
