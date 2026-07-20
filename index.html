@@ -1552,16 +1552,16 @@
       const records =
         getCurrentRecords();
 
-      const latestPeriod =
+      const latestPeriodKey =
         latestPeriod(records);
 
       const latestRecords =
-        latestPeriod
+        latestPeriodKey
           ? records.filter(
               function (record) {
                 return (
                   record.Period_Key ===
-                  latestPeriod
+                  latestPeriodKey
                 );
               }
             )
@@ -1611,7 +1611,7 @@
         {
           label: 'Latest period',
           value:
-            latestPeriod || '—',
+            latestPeriodKey || '—',
           foot:
             APP.district ||
             'All districts'
