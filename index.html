@@ -802,6 +802,131 @@
       }
     }
 
+
+    .ranking-summary {
+      padding: 12px 16px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .ranking-summary-text {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .ranking-period-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: var(--panel-soft);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.76rem;
+      font-weight: 800;
+    }
+
+    .district-cell {
+      display: grid;
+      gap: 2px;
+    }
+
+    .district-name {
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .district-code {
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .case-bar-cell {
+      display: grid;
+      grid-template-columns: minmax(100px, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .case-bar-track {
+      height: 12px;
+      border-radius: 999px;
+      background: #e8eef5;
+      overflow: hidden;
+    }
+
+    .case-bar-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: var(--primary);
+    }
+
+    .case-value {
+      font-weight: 900;
+      min-width: 42px;
+      text-align: right;
+    }
+
+    .change-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 30px;
+      padding: 0 10px;
+      border-radius: 999px;
+      font-size: 0.76rem;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .change-badge.increase {
+      color: #9f2f2f;
+      background: #fde9e9;
+      border: 1px solid #f4c5c5;
+    }
+
+    .change-badge.decrease {
+      color: #0f7c5d;
+      background: #e4f7f0;
+      border: 1px solid #bce8d8;
+    }
+
+    .change-badge.no-change {
+      color: #5f6b7d;
+      background: #eef2f6;
+      border: 1px solid #d9e1ea;
+    }
+
+    .change-badge.new-activity {
+      color: #9a6a0a;
+      background: #fff4d7;
+      border: 1px solid #f1ddb0;
+    }
+
+    .change-detail {
+      margin-top: 4px;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .rate-value {
+      font-weight: 800;
+    }
+
+    @media (max-width: 900px) {
+      .ranking-table {
+        min-width: 820px;
+      }
+
+      #rankingContainer {
+        overflow-x: auto;
+      }
+    }
+
   </style>
 </head>
 
@@ -3039,32 +3164,34 @@
                       (index + 1) +
                     '</td>' +
                     '<td>' +
-                      '<strong>' +
-                        escapeHtml(
-                          item.districtName ||
-                          item.districtCode
-                        ) +
-                      '</strong>' +
-                      '<div style="font-size:.72rem;color:var(--muted);margin-top:2px">' +
-                        escapeHtml(
-                          item.districtCode || ''
-                        ) +
+                      '<div class="district-cell">' +
+                        '<span class="district-name">' +
+                          escapeHtml(
+                            item.districtName ||
+                            item.districtCode
+                          ) +
+                        '</span>' +
+                        '<span class="district-code">' +
+                          escapeHtml(
+                            item.districtCode || ''
+                          ) +
+                        '</span>' +
                       '</div>' +
                     '</td>' +
                     '<td>' +
-                      '<div style="display:grid;grid-template-columns:minmax(90px,1fr) auto;gap:10px;align-items:center">' +
-                        '<div style="height:12px;background:#e8eef5;border-radius:999px;overflow:hidden">' +
-                          '<div style="height:100%;width:' +
+                      '<div class="case-bar-cell">' +
+                        '<div class="case-bar-track">' +
+                          '<div class="case-bar-fill" style="width:' +
                             width.toFixed(2) +
-                            '%;background:var(--primary);border-radius:999px"></div>' +
+                          '%"></div>' +
                         '</div>' +
-                        '<strong>' +
+                        '<span class="case-value">' +
                           escapeHtml(
                             formatNumber(
                               item.cases
                             )
                           ) +
-                        '</strong>' +
+                        '</span>' +
                       '</div>' +
                     '</td>' +
                     '<td>' +
@@ -3073,11 +3200,13 @@
                       ) +
                     '</td>' +
                     '<td>' +
-                      escapeHtml(
-                        formatNumber(
-                          item.consultationRate
-                        )
-                      ) +
+                      '<span class="rate-value">' +
+                        escapeHtml(
+                          formatNumber(
+                            item.consultationRate
+                          )
+                        ) +
+                      '</span>' +
                     '</td>' +
                   '</tr>'
                 );
@@ -3086,13 +3215,27 @@
             .join('');
 
         ELEMENTS.rankingContainer.innerHTML =
+          '<div class="ranking-summary">' +
+            '<div class="ranking-summary-text">' +
+              'Top five districts ranked by current-period ILI cases.' +
+            '</div>' +
+            '<div class="ranking-period-chip">' +
+              escapeHtml(
+                effectivePeriod
+              ) +
+              ' vs ' +
+              escapeHtml(
+                payload.previousPeriod || 'previous week'
+              ) +
+            '</div>' +
+          '</div>' +
           '<table class="ranking-table">' +
             '<thead>' +
               '<tr>' +
                 '<th>#</th>' +
                 '<th>District</th>' +
                 '<th>Total ILI Cases</th>' +
-                '<th>Change vs Previous Week</th>' +
+                '<th>Weekly Change</th>' +
                 '<th>Consultation Rate</th>' +
               '</tr>' +
             '</thead>' +
@@ -3136,52 +3279,54 @@
           item.previousCases || 0
         );
 
-      const status =
-        String(
-          item.caseChangeStatus || ''
-        ).toUpperCase();
-
-      /*
-       * When the previous week has no cases, a percentage change is not
-       * mathematically defined. Do not display 0%. Show "New activity"
-       * instead whenever the current week has cases but the previous week
-       * has zero.
-       */
-      if (
-        previousCases <= 0 &&
-        currentCases > 0
-      ) {
-        return (
-          '<span style="font-weight:900;color:#d89b2b">' +
-            'New activity' +
-          '</span>' +
-          '<div style="font-size:.7rem;color:var(--muted);margin-top:2px">' +
-            'Previous week: 0 cases' +
-          '</div>'
-        );
-      }
-
-      if (
-        previousCases <= 0 &&
-        currentCases <= 0
-      ) {
-        return (
-          '<span style="font-weight:800;color:var(--muted)">—</span>' +
-          '<div style="font-size:.7rem;color:var(--muted);margin-top:2px">' +
-            'No activity in both weeks' +
-          '</div>'
-        );
-      }
-
       let percent =
         Number(
           item.caseChangePercent
         );
 
+      const status =
+        String(
+          item.caseChangeStatus || ''
+        ).toUpperCase();
+
+      if (
+        status ===
+          'NEW_ACTIVITY' ||
+        (
+          previousCases <= 0 &&
+          currentCases > 0
+        )
+      ) {
+        return (
+          '<div>' +
+            '<span class="change-badge new-activity">' +
+              '● New activity' +
+            '</span>' +
+            '<div class="change-detail">' +
+              'Previous week: 0 cases' +
+            '</div>' +
+          '</div>'
+        );
+      }
+
+      if (
+        status ===
+          'NO_BASELINE'
+      ) {
+        return (
+          '<div>' +
+            '<span class="change-badge no-change">' +
+              '— No baseline' +
+            '</span>' +
+          '</div>'
+        );
+      }
+
       if (
         !Number.isFinite(
           percent
-        )
+        ) &&
+        previousCases > 0
       ) {
         percent =
           (
@@ -3194,56 +3339,69 @@
           100;
       }
 
-      let symbol =
-        '→';
+      if (
+        !Number.isFinite(
+          percent
+        )
+      ) {
+        percent = 0;
+      }
 
-      let colour =
-        '#6c778b';
+      let badgeClass =
+        'no-change';
+
+      let label =
+        '→ No change';
 
       if (
-        percent >
-        0
+        percent > 0
       ) {
-        symbol =
-          '▲';
+        badgeClass =
+          'increase';
 
-        colour =
-          '#c94f4f';
+        label =
+          '▲ Increase ' +
+          formatNumber(
+            Math.abs(
+              percent
+            )
+          ) +
+          '%';
 
       } else if (
-        percent <
-        0
+        percent < 0
       ) {
-        symbol =
-          '▼';
+        badgeClass =
+          'decrease';
 
-        colour =
-          '#18a27b';
+        label =
+          '▼ Decrease ' +
+          formatNumber(
+            Math.abs(
+              percent
+            )
+          ) +
+          '%';
       }
 
       return (
-        '<span style="font-weight:900;color:' +
-          colour +
-        '">' +
-          symbol +
-          ' ' +
-          escapeHtml(
-            formatNumber(
-              Math.abs(
-                percent
+        '<div>' +
+          '<span class="change-badge ' +
+            badgeClass +
+          '">' +
+            escapeHtml(
+              label
+            ) +
+          '</span>' +
+          '<div class="change-detail">' +
+            'Previous week: ' +
+            escapeHtml(
+              formatNumber(
+                previousCases
               )
-            )
-          ) +
-          '%' +
-        '</span>' +
-        '<div style="font-size:.7rem;color:var(--muted);margin-top:2px">' +
-          'Previous week: ' +
-          escapeHtml(
-            formatNumber(
-              previousCases
-            )
-          ) +
-          ' cases' +
+            ) +
+            ' cases' +
+          '</div>' +
         '</div>'
       );
     }
