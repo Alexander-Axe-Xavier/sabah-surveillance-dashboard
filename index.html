@@ -3420,6 +3420,18 @@
         return;
       }
 
+      if (
+        APP.module ===
+          'SARIC' &&
+        APP.analysis ===
+          'SARI_TREND' &&
+        !APP.district &&
+        !APP.facility
+      ) {
+        renderSARITopFiveDistricts();
+        return;
+      }
+
       renderFallbackRanking();
     }
 
@@ -3763,6 +3775,189 @@
           '</div>' +
         '</div>'
       );
+    }
+
+
+    async function renderSARITopFiveDistricts() {
+      const requestId =
+        ++APP.rankingRequestId;
+
+      ELEMENTS.rankingTitle.textContent =
+        'Top 5 districts — SARI Clinical';
+
+      ELEMENTS.rankingContainer.innerHTML =
+        '<div class="empty-state">' +
+        '<div>Loading district ranking…</div>' +
+        '</div>';
+
+      const requestedPeriod =
+        getCurrentOrLatestValidPeriod(
+          getCurrentRecords()
+        ) ||
+        getAuthoritativeCurrentPeriod();
+
+      try {
+        const payload =
+          await apiRequest({
+            api:
+              'sari-ranking',
+
+            period:
+              requestedPeriod,
+
+            limit:
+              5
+          });
+
+        if (
+          requestId !==
+          APP.rankingRequestId
+        ) {
+          return;
+        }
+
+        const ranking =
+          payload.ranking || [];
+
+        const effectivePeriod =
+          payload.period ||
+          requestedPeriod ||
+          'Current period';
+
+        ELEMENTS.rankingTitle.textContent =
+          'District ranking (SARI Clinical) — ' +
+          effectivePeriod;
+
+        if (!ranking.length) {
+          ELEMENTS.rankingContainer.innerHTML =
+            '<div class="empty-state">' +
+            '<div>No district SARI records are available for ' +
+            escapeHtml(
+              effectivePeriod
+            ) +
+            '.</div>' +
+            '</div>';
+          return;
+        }
+
+        const maximum =
+          Math.max(
+            1,
+            Number(
+              ranking[0].cases || 0
+            )
+          );
+
+        const rows =
+          ranking
+            .slice(
+              0,
+              5
+            )
+            .map(
+              function (
+                item,
+                index
+              ) {
+                const width =
+                  Math.max(
+                    3,
+                    (
+                      Number(
+                        item.cases || 0
+                      ) /
+                      maximum
+                    ) *
+                    100
+                  );
+
+                return (
+                  '<tr>' +
+                    '<td>' +
+                      (index + 1) +
+                    '</td>' +
+                    '<td>' +
+                      '<strong>' +
+                        escapeHtml(
+                          item.districtName ||
+                          item.districtCode
+                        ) +
+                      '</strong>' +
+                      '<div style="font-size:.72rem;color:var(--muted);margin-top:2px">' +
+                        escapeHtml(
+                          item.districtCode || ''
+                        ) +
+                      '</div>' +
+                    '</td>' +
+                    '<td>' +
+                      '<div style="display:grid;grid-template-columns:minmax(90px,1fr) auto;gap:10px;align-items:center">' +
+                        '<div style="height:12px;background:#e8eef5;border-radius:999px;overflow:hidden">' +
+                          '<div style="height:100%;width:' +
+                            width.toFixed(2) +
+                            '%;background:var(--primary);border-radius:999px"></div>' +
+                        '</div>' +
+                        '<strong>' +
+                          escapeHtml(
+                            formatNumber(
+                              item.cases
+                            )
+                          ) +
+                        '</strong>' +
+                      '</div>' +
+                    '</td>' +
+                    '<td>' +
+                      formatWeeklyCaseChange(
+                        item
+                      ) +
+                    '</td>' +
+                    '<td>' +
+                      escapeHtml(
+                        formatNumber(
+                          item.admissionProportion
+                        )
+                      ) +
+                    '</td>' +
+                  '</tr>'
+                );
+              }
+            )
+            .join('');
+
+        ELEMENTS.rankingContainer.innerHTML =
+          '<table class="ranking-table">' +
+            '<thead>' +
+              '<tr>' +
+                '<th>#</th>' +
+                '<th>District</th>' +
+                '<th>Total SARI Cases</th>' +
+                '<th>Weekly Change</th>' +
+                '<th>Admission Proportion</th>' +
+              '</tr>' +
+            '</thead>' +
+            '<tbody>' +
+              rows +
+            '</tbody>' +
+          '</table>';
+
+      } catch (error) {
+        if (
+          requestId !==
+          APP.rankingRequestId
+        ) {
+          return;
+        }
+
+        ELEMENTS.rankingContainer.innerHTML =
+          '<div class="error-state">' +
+          '<div><strong>District ranking error</strong><br>' +
+          escapeHtml(
+            error && error.message
+              ? error.message
+              : String(error)
+          ) +
+          '</div>' +
+          '</div>';
+      }
     }
 
 
