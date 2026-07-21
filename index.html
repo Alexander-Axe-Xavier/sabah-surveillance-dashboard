@@ -2312,9 +2312,18 @@
           );
 
       const currentPeriod =
-        getCurrentOrLatestValidPeriod(
-          records
-        );
+        (
+          APP.module ===
+            'ILIC' ||
+          APP.module ===
+            'SARIC' ||
+          APP.module ===
+            'AGEC'
+        )
+          ? getAuthoritativeCurrentPeriod()
+          : getCurrentOrLatestValidPeriod(
+              records
+            );
 
       const currentRecords =
         currentPeriod
@@ -3423,8 +3432,6 @@
       if (
         APP.module ===
           'SARIC' &&
-        APP.analysis ===
-          'SARI_TREND' &&
         !APP.district &&
         !APP.facility
       ) {
@@ -3787,13 +3794,10 @@
 
       ELEMENTS.rankingContainer.innerHTML =
         '<div class="empty-state">' +
-        '<div>Loading district ranking…</div>' +
+          '<div>Loading district ranking…</div>' +
         '</div>';
 
       const requestedPeriod =
-        getCurrentOrLatestValidPeriod(
-          getCurrentRecords()
-        ) ||
         getAuthoritativeCurrentPeriod();
 
       try {
@@ -3831,11 +3835,11 @@
         if (!ranking.length) {
           ELEMENTS.rankingContainer.innerHTML =
             '<div class="empty-state">' +
-            '<div>No district SARI records are available for ' +
-            escapeHtml(
-              effectivePeriod
-            ) +
-            '.</div>' +
+              '<div>No district SARI records are available for ' +
+                escapeHtml(
+                  effectivePeriod
+                ) +
+              '.</div>' +
             '</div>';
           return;
         }
@@ -3877,32 +3881,34 @@
                       (index + 1) +
                     '</td>' +
                     '<td>' +
-                      '<strong>' +
-                        escapeHtml(
-                          item.districtName ||
-                          item.districtCode
-                        ) +
-                      '</strong>' +
-                      '<div style="font-size:.72rem;color:var(--muted);margin-top:2px">' +
-                        escapeHtml(
-                          item.districtCode || ''
-                        ) +
+                      '<div class="district-cell">' +
+                        '<span class="district-name">' +
+                          escapeHtml(
+                            item.districtName ||
+                            item.districtCode
+                          ) +
+                        '</span>' +
+                        '<span class="district-code">' +
+                          escapeHtml(
+                            item.districtCode || ''
+                          ) +
+                        '</span>' +
                       '</div>' +
                     '</td>' +
                     '<td>' +
-                      '<div style="display:grid;grid-template-columns:minmax(90px,1fr) auto;gap:10px;align-items:center">' +
-                        '<div style="height:12px;background:#e8eef5;border-radius:999px;overflow:hidden">' +
-                          '<div style="height:100%;width:' +
+                      '<div class="case-bar-cell">' +
+                        '<div class="case-bar-track">' +
+                          '<div class="case-bar-fill" style="width:' +
                             width.toFixed(2) +
-                            '%;background:var(--primary);border-radius:999px"></div>' +
+                          '%"></div>' +
                         '</div>' +
-                        '<strong>' +
+                        '<span class="case-value">' +
                           escapeHtml(
                             formatNumber(
                               item.cases
                             )
                           ) +
-                        '</strong>' +
+                        '</span>' +
                       '</div>' +
                     '</td>' +
                     '<td>' +
@@ -3911,11 +3917,13 @@
                       ) +
                     '</td>' +
                     '<td>' +
-                      escapeHtml(
-                        formatNumber(
-                          item.admissionProportion
-                        )
-                      ) +
+                      '<span class="rate-value">' +
+                        escapeHtml(
+                          formatNumber(
+                            item.admissionProportion
+                          )
+                        ) +
+                      '</span>' +
                     '</td>' +
                   '</tr>'
                 );
@@ -3924,6 +3932,21 @@
             .join('');
 
         ELEMENTS.rankingContainer.innerHTML =
+          '<div class="ranking-summary">' +
+            '<div class="ranking-summary-text">' +
+              'Top five districts ranked by current-period SARI cases.' +
+            '</div>' +
+            '<div class="ranking-period-chip">' +
+              escapeHtml(
+                effectivePeriod
+              ) +
+              ' vs ' +
+              escapeHtml(
+                payload.previousPeriod ||
+                'previous week'
+              ) +
+            '</div>' +
+          '</div>' +
           '<table class="ranking-table">' +
             '<thead>' +
               '<tr>' +
@@ -3949,13 +3972,13 @@
 
         ELEMENTS.rankingContainer.innerHTML =
           '<div class="error-state">' +
-          '<div><strong>District ranking error</strong><br>' +
-          escapeHtml(
-            error && error.message
-              ? error.message
-              : String(error)
-          ) +
-          '</div>' +
+            '<div><strong>District ranking error</strong><br>' +
+              escapeHtml(
+                error && error.message
+                  ? error.message
+                  : String(error)
+              ) +
+            '</div>' +
           '</div>';
       }
     }
