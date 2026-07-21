@@ -927,6 +927,53 @@
       }
     }
 
+
+    .chart-axis-shell {
+      position: relative;
+      width: 100%;
+      padding-left: 46px;
+      padding-bottom: 34px;
+    }
+
+    .chart-y-axis-title {
+      position: absolute;
+      left: 4px;
+      top: 50%;
+      transform:
+        translateY(-50%)
+        rotate(-90deg);
+      transform-origin: center;
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: var(--muted);
+      white-space: nowrap;
+      letter-spacing: 0.02em;
+    }
+
+    .chart-x-axis-title {
+      position: absolute;
+      left: 50%;
+      bottom: 4px;
+      transform: translateX(-50%);
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: var(--muted);
+      white-space: nowrap;
+      letter-spacing: 0.02em;
+    }
+
+    @media (max-width: 700px) {
+      .chart-axis-shell {
+        padding-left: 34px;
+        padding-bottom: 30px;
+      }
+
+      .chart-y-axis-title,
+      .chart-x-axis-title {
+        font-size: 0.68rem;
+      }
+    }
+
   </style>
 </head>
 
@@ -2426,7 +2473,12 @@
         getCurrentRecords();
 
       ELEMENTS.chartTitle.textContent =
-        analysis.label;
+        (
+          APP.module === 'ILIC' &&
+          APP.analysis === 'ILI_TREND'
+        )
+          ? 'Weekly trend'
+          : analysis.label;
 
       ELEMENTS.chartSubtitle.textContent =
         buildSubtitle();
@@ -2871,21 +2923,33 @@
       }
 
       ELEMENTS.mainChart.innerHTML =
-        '<div class="time-chart-shell">' +
-          '<div class="time-chart">' +
-            '<div class="time-chart-plot" style="grid-template-columns:repeat(' +
-              periods.length +
-              ',minmax(0,1fr))">' +
-              plot +
-            '</div>' +
-            '<div>' +
-              '<div class="chart-legend">' +
-                legend +
+        '<div class="chart-axis-shell">' +
+          '<div class="chart-y-axis-title">' +
+            'Cases' +
+          '</div>' +
+          '<div class="time-chart-shell">' +
+            '<div class="time-chart">' +
+              '<div class="time-chart-plot" style="grid-template-columns:repeat(' +
+                periods.length +
+                ',minmax(0,1fr))">' +
+                plot +
               '</div>' +
-              '<div class="chart-note">' +
-                escapeHtml(note) +
+              '<div>' +
+                '<div class="chart-legend">' +
+                  legend +
+                '</div>' +
+                '<div class="chart-note">' +
+                  escapeHtml(note) +
+                '</div>' +
               '</div>' +
             '</div>' +
+          '</div>' +
+          '<div class="chart-x-axis-title">' +
+            (
+              isMonthly
+                ? 'Calendar Month'
+                : 'Epidemiological Week'
+            ) +
           '</div>' +
         '</div>';
     }
