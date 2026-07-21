@@ -3068,11 +3068,18 @@
                       '</div>' +
                     '</td>' +
                     '<td>' +
+                      renderILICaseChangeCell(
+                        item,
+                        payload.previousPeriod
+                      ) +
+                    '</td>' +
+                    '<td>' +
                       escapeHtml(
                         formatNumber(
                           item.consultationRate
                         )
                       ) +
+                      '%' +
                     '</td>' +
                   '</tr>'
                 );
@@ -3086,7 +3093,8 @@
               '<tr>' +
                 '<th>#</th>' +
                 '<th>District</th>' +
-                '<th>ILI cases</th>' +
+                '<th>Total ILI Cases</th>' +
+                '<th>Change from previous week</th>' +
                 '<th>Consultation Rate</th>' +
               '</tr>' +
             '</thead>' +
@@ -3114,6 +3122,134 @@
           '</div>' +
           '</div>';
       }
+    }
+
+
+    function renderILICaseChangeCell(
+      item,
+      previousPeriod
+    ) {
+      const direction =
+        String(
+          item.caseChangeDirection ||
+          'NO_BASELINE'
+        );
+
+      const previousCases =
+        Number(
+          item.previousCases || 0
+        );
+
+      const percent =
+        item.caseChangePercent ===
+          null ||
+        item.caseChangePercent ===
+          undefined
+          ? null
+          : Number(
+              item.caseChangePercent
+            );
+
+      let symbol =
+        '→';
+
+      let label =
+        'No change';
+
+      let colour =
+        '#6c778b';
+
+      if (
+        direction ===
+        'INCREASE'
+      ) {
+        symbol =
+          '▲';
+
+        label =
+          '+' +
+          formatNumber(
+            Math.abs(
+              percent
+            )
+          ) +
+          '%';
+
+        colour =
+          '#c94f4f';
+
+      } else if (
+        direction ===
+        'DECREASE'
+      ) {
+        symbol =
+          '▼';
+
+        label =
+          '-' +
+          formatNumber(
+            Math.abs(
+              percent
+            )
+          ) +
+          '%';
+
+        colour =
+          '#18a27b';
+
+      } else if (
+        direction ===
+        'NEW_ACTIVITY'
+      ) {
+        symbol =
+          '●';
+
+        label =
+          'New activity';
+
+        colour =
+          '#d89b2b';
+
+      } else if (
+        direction ===
+        'NO_BASELINE'
+      ) {
+        symbol =
+          '—';
+
+        label =
+          'No baseline';
+      }
+
+      const title =
+        (
+          previousPeriod ||
+          'Previous week'
+        ) +
+        ': ' +
+        formatNumber(
+          previousCases
+        ) +
+        ' cases';
+
+      return (
+        '<span title="' +
+          escapeHtml(
+            title
+          ) +
+        '" style="display:inline-flex;align-items:center;gap:6px;font-weight:800;color:' +
+          colour +
+        '">' +
+          '<span>' +
+            symbol +
+          '</span>' +
+          '<span>' +
+            escapeHtml(
+              label
+            ) +
+          '</span>' +
+        '</span>'
+      );
     }
 
 
