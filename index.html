@@ -2301,8 +2301,12 @@
         getCurrentRecords()
           .filter(
             function (record) {
-              return !isFuturePeriod(
-                record.Period_Key
+              return (
+                record.Metric ===
+                  analysis.metric &&
+                !isFuturePeriod(
+                  record.Period_Key
+                )
               );
             }
           );
@@ -2322,50 +2326,116 @@
                 );
               }
             )
-          : records;
+          : [];
 
-      const values =
-        currentRecords
-          .map(
-            function (record) {
-              return Number(
-                record.Numeric_Value
-              );
-            }
-          )
-          .filter(
-            function (value) {
-              return Number.isFinite(value);
-            }
-          );
-
-      const total =
-        values.reduce(
-          function (sum, value) {
-            return sum + value;
+      const currentTotal =
+        currentRecords.reduce(
+          function (
+            sum,
+            record
+          ) {
+            return (
+              sum +
+              Number(
+                record.Numeric_Value || 0
+              )
+            );
           },
           0
         );
 
-      const maximum =
-        values.length
-          ? Math.max.apply(
-              null,
-              values
+      const weeklyTotals = {};
+
+      records.forEach(
+        function (record) {
+          const period =
+            record.Period_Key || '';
+
+          if (
+            !period ||
+            period ===
+              'CURRENT'
+          ) {
+            return;
+          }
+
+          weeklyTotals[
+            period
+          ] =
+            Number(
+              weeklyTotals[
+                period
+              ] || 0
+            ) +
+            Number(
+              record.Numeric_Value || 0
+            );
+        }
+      );
+
+      let highestPeriod = '';
+      let highestValue = 0;
+
+      Object.keys(
+        weeklyTotals
+      )
+        .sort()
+        .forEach(
+          function (period) {
+            const value =
+              Number(
+                weeklyTotals[
+                  period
+                ] || 0
+              );
+
+            if (
+              !highestPeriod ||
+              value >
+                highestValue
+            ) {
+              highestPeriod =
+                period;
+
+              highestValue =
+                value;
+            }
+          }
+        );
+
+      const highestWeekLabel =
+        highestPeriod
+          ? highestPeriod.replace(
+              /^\d{4}-W/,
+              'W'
             )
-          : 0;
+          : '—';
 
-      const average =
-        values.length
-          ? total /
-            values.length
-          : 0;
-
-      const scopeLabel =
+      const selectedArea =
         APP.facility
-          ? APP.facility
+          ? (
+              ELEMENTS
+                .facilitySelect
+                .options[
+                  ELEMENTS
+                    .facilitySelect
+                    .selectedIndex
+                ]
+                .text ||
+              APP.facility
+            )
           : APP.district
-            ? APP.district
+            ? (
+                ELEMENTS
+                  .districtSelect
+                  .options[
+                    ELEMENTS
+                      .districtSelect
+                      .selectedIndex
+                  ]
+                  .text ||
+                APP.district
+              )
             : 'Sabah';
 
       const cards = [
@@ -2390,7 +2460,7 @@
             '—',
 
           foot:
-            scopeLabel
+            selectedArea
         },
         {
           label:
@@ -2398,31 +2468,42 @@
 
           value:
             formatNumber(
-              total
+              currentTotal
             ),
 
           foot:
-            currentRecords.length +
-            ' current-period records'
+            currentPeriod
+              ? (
+                  selectedArea +
+                  ' · ' +
+                  currentPeriod
+                )
+              : (
+                  'No current-period data for ' +
+                  selectedArea
+                )
         },
         {
           label:
-            'Highest value',
+            'Highest value — ' +
+            highestWeekLabel,
 
           value:
             formatNumber(
-              maximum
+              highestValue
             ),
 
           foot:
-            values.length
+            highestPeriod
               ? (
-                  'Average ' +
-                  formatNumber(
-                    average
-                  )
+                  selectedArea +
+                  ' · ' +
+                  highestPeriod
                 )
-              : 'No current-period data'
+              : (
+                  'No weekly data for ' +
+                  selectedArea
+                )
         }
       ];
 
