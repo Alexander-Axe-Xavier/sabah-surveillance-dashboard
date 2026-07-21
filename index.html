@@ -1796,30 +1796,313 @@
       return records;
     }
 
+    function getAuthoritativeCurrentPeriod() {
+      const kpiRecords =
+        APP.bootstrap &&
+        Array.isArray(
+          APP.bootstrap.kpi
+        )
+          ? APP.bootstrap.kpi
+          : [];
+
+      const currentPeriodRecord =
+        kpiRecords.find(
+          function (record) {
+            return (
+              record.Metric ===
+                'CURRENT_EPI_PERIOD' ||
+              record.Metric ===
+                'CURRENT_EPI_WEEK' ||
+              record.Metric ===
+                'CURRENT_PERIOD'
+            );
+          }
+        );
+
+      if (currentPeriodRecord) {
+        const textValue =
+          String(
+            currentPeriodRecord.Text_Value ||
+            currentPeriodRecord.Category ||
+            currentPeriodRecord.Period_Key ||
+            ''
+          )
+            .trim()
+            .toUpperCase();
+
+        const directMatch =
+          textValue.match(
+            /(\d{4})-W(\d{1,2})/
+          );
+
+        if (directMatch) {
+          return (
+            directMatch[1] +
+            '-W' +
+            String(
+              Number(
+                directMatch[2]
+              )
+            ).padStart(
+              2,
+              '0'
+            )
+          );
+        }
+
+        const numericWeek =
+          Number(
+            currentPeriodRecord.Numeric_Value
+          );
+
+        const yearRecord =
+          kpiRecords.find(
+            function (record) {
+              return (
+                record.Metric ===
+                  'CURRENT_EPI_YEAR' ||
+                record.Metric ===
+                  'EPI_YEAR'
+              );
+            }
+          );
+
+        const year =
+          yearRecord
+            ? Number(
+                yearRecord.Numeric_Value ||
+                yearRecord.Text_Value
+              )
+            : new Date().getFullYear();
+
+        if (
+          Number.isFinite(
+            numericWeek
+          ) &&
+          numericWeek >= 1 &&
+          numericWeek <= 53
+        ) {
+          return (
+            year +
+            '-W' +
+            String(
+              numericWeek
+            ).padStart(
+              2,
+              '0'
+            )
+          );
+        }
+      }
+
+      return getCurrentSundayWeekKey();
+    }
+
+
+    function getCurrentSundayWeekKey() {
+      const now =
+        new Date();
+
+      const year =
+        now.getFullYear();
+
+      const start =
+        new Date(
+          year,
+          0,
+          1,
+          12,
+          0,
+          0,
+          0
+        );
+
+      const firstSunday =
+        new Date(
+          year,
+          0,
+          1 +
+          (
+            7 -
+            start.getDay()
+          ) %
+          7,
+          12,
+          0,
+          0,
+          0
+        );
+
+      let week;
+
+      if (
+        now <
+        firstSunday
+      ) {
+        week = 1;
+      } else {
+        week =
+          Math.floor(
+            (
+              now -
+              firstSunday
+            ) /
+            604800000
+          ) +
+          1;
+      }
+
+      week =
+        Math.max(
+          1,
+          Math.min(
+            53,
+            week
+          )
+        );
+
+      return (
+        year +
+        '-W' +
+        String(
+          week
+        ).padStart(
+          2,
+          '0'
+        )
+      );
+    }
+
+
+    function isFuturePeriod(
+      periodKey
+    ) {
+      if (!periodKey) {
+        return false;
+      }
+
+      const currentPeriod =
+        getAuthoritativeCurrentPeriod();
+
+      if (
+        /^\d{4}-W\d{2}$/.test(
+          periodKey
+        ) &&
+        /^\d{4}-W\d{2}$/.test(
+          currentPeriod
+        )
+      ) {
+        return (
+          periodKey >
+          currentPeriod
+        );
+      }
+
+      const currentMonth =
+        String(
+          new Date().getFullYear()
+        ) +
+        '-' +
+        String(
+          new Date().getMonth() + 1
+        ).padStart(
+          2,
+          '0'
+        );
+
+      if (
+        /^\d{4}-\d{2}$/.test(
+          periodKey
+        )
+      ) {
+        return (
+          periodKey >
+          currentMonth
+        );
+      }
+
+      return false;
+    }
+
+
+    function getCurrentOrLatestValidPeriod(
+      records
+    ) {
+      const validPeriods =
+        records
+          .map(
+            function (record) {
+              return record.Period_Key;
+            }
+          )
+          .filter(
+            function (period) {
+              return (
+                period &&
+                period !==
+                  'CURRENT' &&
+                !isFuturePeriod(
+                  period
+                )
+              );
+            }
+          )
+          .sort();
+
+      if (!validPeriods.length) {
+        return '';
+      }
+
+      const authoritative =
+        getAuthoritativeCurrentPeriod();
+
+      if (
+        validPeriods.indexOf(
+          authoritative
+        ) !== -1
+      ) {
+        return authoritative;
+      }
+
+      return validPeriods[
+        validPeriods.length - 1
+      ];
+    }
+
+
     function renderKpis() {
       const analysis =
         getCurrentAnalysisConfig();
 
       const records =
-        getCurrentRecords();
+        getCurrentRecords()
+          .filter(
+            function (record) {
+              return !isFuturePeriod(
+                record.Period_Key
+              );
+            }
+          );
 
-      const latestPeriodKey =
-        latestPeriod(records);
+      const currentPeriod =
+        getCurrentOrLatestValidPeriod(
+          records
+        );
 
-      const latestRecords =
-        latestPeriodKey
+      const currentRecords =
+        currentPeriod
           ? records.filter(
               function (record) {
                 return (
                   record.Period_Key ===
-                  latestPeriodKey
+                  currentPeriod
                 );
               }
             )
           : records;
 
       const values =
-        latestRecords
+        currentRecords
           .map(
             function (record) {
               return Number(
@@ -1843,45 +2126,80 @@
 
       const maximum =
         values.length
-          ? Math.max.apply(null, values)
+          ? Math.max.apply(
+              null,
+              values
+            )
           : 0;
 
       const average =
         values.length
-          ? total / values.length
+          ? total /
+            values.length
           : 0;
+
+      const scopeLabel =
+        APP.facility
+          ? APP.facility
+          : APP.district
+            ? APP.district
+            : 'Sabah';
 
       const cards = [
         {
-          label: 'Selected module',
+          label:
+            'Selected module',
+
           value:
-            MODULE_CONFIG[APP.module].label,
+            MODULE_CONFIG[
+              APP.module
+            ].label,
+
           foot:
             analysis.label
         },
         {
-          label: 'Latest period',
+          label:
+            'Current period',
+
           value:
-            latestPeriodKey || '—',
+            currentPeriod ||
+            '—',
+
           foot:
-            APP.district ||
-            'All districts'
+            scopeLabel
         },
         {
-          label: 'Latest total',
+          label:
+            'Current total',
+
           value:
-            formatNumber(total),
+            formatNumber(
+              total
+            ),
+
           foot:
-            records.length +
-            ' prepared records'
+            currentRecords.length +
+            ' current-period records'
         },
         {
-          label: 'Highest value',
+          label:
+            'Highest value',
+
           value:
-            formatNumber(maximum),
+            formatNumber(
+              maximum
+            ),
+
           foot:
-            'Average ' +
-            formatNumber(average)
+            values.length
+              ? (
+                  'Average ' +
+                  formatNumber(
+                    average
+                  )
+                )
+              : 'No current-period data'
         }
       ];
 
@@ -1890,20 +2208,28 @@
       cards.forEach(
         function (card) {
           const element =
-            document.createElement('article');
+            document.createElement(
+              'article'
+            );
 
           element.className =
             'kpi-card';
 
           element.innerHTML =
             '<div class="kpi-label">' +
-            escapeHtml(card.label) +
+            escapeHtml(
+              card.label
+            ) +
             '</div>' +
             '<div class="kpi-value">' +
-            escapeHtml(card.value) +
+            escapeHtml(
+              card.value
+            ) +
             '</div>' +
             '<div class="kpi-foot">' +
-            escapeHtml(card.foot) +
+            escapeHtml(
+              card.foot
+            ) +
             '</div>';
 
           ELEMENTS.kpiGrid.appendChild(
@@ -2020,14 +2346,15 @@
           .filter(Boolean)
           .sort();
 
-      const latestPeriod =
-        availablePeriods[
-          availablePeriods.length - 1
-        ] || '';
+      const currentPeriod =
+        getAuthoritativeCurrentPeriod();
 
       const selectedYear =
-        latestPeriod
-          ? latestPeriod.substring(0, 4)
+        currentPeriod
+          ? currentPeriod.substring(
+              0,
+              4
+            )
           : String(
               new Date().getFullYear()
             );
@@ -2082,7 +2409,13 @@
 
           if (
             !period ||
-            period.substring(0, 4) !==
+            isFuturePeriod(
+              period
+            ) ||
+            period.substring(
+              0,
+              4
+            ) !==
               selectedYear ||
             !byPeriod[
               period
@@ -2437,7 +2770,9 @@
         getCurrentRecords();
 
       const latest =
-        latestPeriod(records);
+        getCurrentOrLatestValidPeriod(
+          records
+        );
 
       const latestRecords =
         latest
