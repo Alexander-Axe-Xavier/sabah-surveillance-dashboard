@@ -3068,9 +3068,8 @@
                       '</div>' +
                     '</td>' +
                     '<td>' +
-                      renderILICaseChangeCell(
-                        item,
-                        payload.previousPeriod
+                      formatWeeklyCaseChange(
+                        item
                       ) +
                     '</td>' +
                     '<td>' +
@@ -3079,7 +3078,6 @@
                           item.consultationRate
                         )
                       ) +
-                      '%' +
                     '</td>' +
                   '</tr>'
                 );
@@ -3094,7 +3092,7 @@
                 '<th>#</th>' +
                 '<th>District</th>' +
                 '<th>Total ILI Cases</th>' +
-                '<th>Change from previous week</th>' +
+                '<th>Change vs Previous Week</th>' +
                 '<th>Consultation Rate</th>' +
               '</tr>' +
             '</thead>' +
@@ -3125,130 +3123,97 @@
     }
 
 
-    function renderILICaseChangeCell(
-      item,
-      previousPeriod
+    function formatWeeklyCaseChange(
+      item
     ) {
-      const direction =
+      const status =
         String(
-          item.caseChangeDirection ||
-          'NO_BASELINE'
-        );
+          item.caseChangeStatus || ''
+        ).toUpperCase();
 
       const previousCases =
         Number(
           item.previousCases || 0
         );
 
+      if (
+        status ===
+        'NEW_ACTIVITY'
+      ) {
+        return (
+          '<span style="font-weight:800;color:#d89b2b">' +
+            'New' +
+          '</span>' +
+          '<div style="font-size:.7rem;color:var(--muted);margin-top:2px">' +
+            'Previous: 0' +
+          '</div>'
+        );
+      }
+
+      if (
+        status ===
+        'NO_BASELINE'
+      ) {
+        return (
+          '<span style="font-weight:800;color:var(--muted)">—</span>'
+        );
+      }
+
       const percent =
-        item.caseChangePercent ===
-          null ||
-        item.caseChangePercent ===
-          undefined
-          ? null
-          : Number(
-              item.caseChangePercent
-            );
+        Number(
+          item.caseChangePercent || 0
+        );
 
       let symbol =
         '→';
-
-      let label =
-        'No change';
 
       let colour =
         '#6c778b';
 
       if (
-        direction ===
-        'INCREASE'
+        percent >
+        0
       ) {
         symbol =
           '▲';
-
-        label =
-          '+' +
-          formatNumber(
-            Math.abs(
-              percent
-            )
-          ) +
-          '%';
 
         colour =
           '#c94f4f';
 
       } else if (
-        direction ===
-        'DECREASE'
+        percent <
+        0
       ) {
         symbol =
           '▼';
 
-        label =
-          '-' +
-          formatNumber(
-            Math.abs(
-              percent
-            )
-          ) +
-          '%';
-
         colour =
           '#18a27b';
-
-      } else if (
-        direction ===
-        'NEW_ACTIVITY'
-      ) {
-        symbol =
-          '●';
-
-        label =
-          'New activity';
-
-        colour =
-          '#d89b2b';
-
-      } else if (
-        direction ===
-        'NO_BASELINE'
-      ) {
-        symbol =
-          '—';
-
-        label =
-          'No baseline';
       }
 
-      const title =
-        (
-          previousPeriod ||
-          'Previous week'
-        ) +
-        ': ' +
-        formatNumber(
-          previousCases
-        ) +
-        ' cases';
-
       return (
-        '<span title="' +
-          escapeHtml(
-            title
-          ) +
-        '" style="display:inline-flex;align-items:center;gap:6px;font-weight:800;color:' +
+        '<span style="font-weight:900;color:' +
           colour +
         '">' +
-          '<span>' +
-            symbol +
-          '</span>' +
-          '<span>' +
-            escapeHtml(
-              label
-            ) +
-          '</span>' +
-        '</span>'
+          symbol +
+          ' ' +
+          escapeHtml(
+            formatNumber(
+              Math.abs(
+                percent
+              )
+            )
+          ) +
+          '%' +
+        '</span>' +
+        '<div style="font-size:.7rem;color:var(--muted);margin-top:2px">' +
+          'Previous: ' +
+          escapeHtml(
+            formatNumber(
+              previousCases
+            )
+          ) +
+        '</div>'
       );
     }
 
