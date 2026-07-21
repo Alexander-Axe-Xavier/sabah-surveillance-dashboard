@@ -3126,43 +3126,73 @@
     function formatWeeklyCaseChange(
       item
     ) {
-      const status =
-        String(
-          item.caseChangeStatus || ''
-        ).toUpperCase();
+      const currentCases =
+        Number(
+          item.cases || 0
+        );
 
       const previousCases =
         Number(
           item.previousCases || 0
         );
 
+      const status =
+        String(
+          item.caseChangeStatus || ''
+        ).toUpperCase();
+
+      /*
+       * When the previous week has no cases, a percentage change is not
+       * mathematically defined. Do not display 0%. Show "New activity"
+       * instead whenever the current week has cases but the previous week
+       * has zero.
+       */
       if (
-        status ===
-        'NEW_ACTIVITY'
+        previousCases <= 0 &&
+        currentCases > 0
       ) {
         return (
-          '<span style="font-weight:800;color:#d89b2b">' +
-            'New' +
+          '<span style="font-weight:900;color:#d89b2b">' +
+            'New activity' +
           '</span>' +
           '<div style="font-size:.7rem;color:var(--muted);margin-top:2px">' +
-            'Previous: 0' +
+            'Previous week: 0 cases' +
           '</div>'
         );
       }
 
       if (
-        status ===
-        'NO_BASELINE'
+        previousCases <= 0 &&
+        currentCases <= 0
       ) {
         return (
-          '<span style="font-weight:800;color:var(--muted)">—</span>'
+          '<span style="font-weight:800;color:var(--muted)">—</span>' +
+          '<div style="font-size:.7rem;color:var(--muted);margin-top:2px">' +
+            'No activity in both weeks' +
+          '</div>'
         );
       }
 
-      const percent =
+      let percent =
         Number(
-          item.caseChangePercent || 0
+          item.caseChangePercent
         );
+
+      if (
+        !Number.isFinite(
+          percent
+        )
+      ) {
+        percent =
+          (
+            (
+              currentCases -
+              previousCases
+            ) /
+            previousCases
+          ) *
+          100;
+      }
 
       let symbol =
         '→';
@@ -3207,12 +3237,13 @@
           '%' +
         '</span>' +
         '<div style="font-size:.7rem;color:var(--muted);margin-top:2px">' +
-          'Previous: ' +
+          'Previous week: ' +
           escapeHtml(
             formatNumber(
               previousCases
             )
           ) +
+          ' cases' +
         '</div>'
       );
     }
