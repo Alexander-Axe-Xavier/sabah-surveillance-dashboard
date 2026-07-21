@@ -2952,46 +2952,23 @@
         '<div>Loading district ranking…</div>' +
         '</div>';
 
-      const currentPeriod =
+      const requestedPeriod =
         getCurrentOrLatestValidPeriod(
           getCurrentRecords()
         ) ||
         getAuthoritativeCurrentPeriod();
 
-      if (!currentPeriod) {
-        ELEMENTS.rankingContainer.innerHTML =
-          '<div class="empty-state">' +
-          '<div>No current epidemiological period is available.</div>' +
-          '</div>';
-        return;
-      }
-
       try {
         const payload =
           await apiRequest({
             api:
-              'view',
-
-            module:
-              'ILIC',
-
-            section:
-              'ILI_TREND',
-
-            metric:
-              'ILI_CASES',
-
-            district:
-              '',
-
-            facility:
-              '',
-
-            scope:
-              'DISTRICT',
+              'ili-ranking',
 
             period:
-              currentPeriod
+              requestedPeriod,
+
+            limit:
+              5
           });
 
         if (
@@ -3001,68 +2978,24 @@
           return;
         }
 
-        const grouped = {};
-
-        (
-          payload.records || []
-        ).forEach(
-          function (record) {
-            const district =
-              record.District_Code ||
-              record.Category ||
-              'Unknown';
-
-            grouped[district] =
-              Number(
-                grouped[district] || 0
-              ) +
-              Number(
-                record.Numeric_Value || 0
-              );
-          }
-        );
-
         const ranking =
-          Object.keys(
-            grouped
-          )
-            .map(
-              function (district) {
-                return {
-                  district:
-                    district,
+          payload.ranking || [];
 
-                  cases:
-                    grouped[district]
-                };
-              }
-            )
-            .sort(
-              function (
-                left,
-                right
-              ) {
-                return (
-                  right.cases -
-                  left.cases
-                );
-              }
-            )
-            .slice(
-              0,
-              5
-            );
+        const effectivePeriod =
+          payload.period ||
+          requestedPeriod ||
+          'Current period';
 
         ELEMENTS.rankingTitle.textContent =
-          'Top 5 districts — ILI Clinical · ' +
-          currentPeriod;
+          'District ranking (ILI Clinical) — ' +
+          effectivePeriod;
 
         if (!ranking.length) {
           ELEMENTS.rankingContainer.innerHTML =
             '<div class="empty-state">' +
             '<div>No district ILI records are available for ' +
             escapeHtml(
-              currentPeriod
+              effectivePeriod
             ) +
             '.</div>' +
             '</div>';
@@ -3070,10 +3003,19 @@
         }
 
         const maximum =
-          ranking[0].cases || 1;
+          Math.max(
+            1,
+            Number(
+              ranking[0].cases || 0
+            )
+          );
 
         const rows =
           ranking
+            .slice(
+              0,
+              5
+            )
             .map(
               function (
                 item,
@@ -3083,7 +3025,9 @@
                   Math.max(
                     3,
                     (
-                      item.cases /
+                      Number(
+                        item.cases || 0
+                      ) /
                       maximum
                     ) *
                     100
@@ -3095,12 +3039,20 @@
                       (index + 1) +
                     '</td>' +
                     '<td>' +
-                      escapeHtml(
-                        item.district
-                      ) +
+                      '<strong>' +
+                        escapeHtml(
+                          item.districtName ||
+                          item.districtCode
+                        ) +
+                      '</strong>' +
+                      '<div style="font-size:.72rem;color:var(--muted);margin-top:2px">' +
+                        escapeHtml(
+                          item.districtCode || ''
+                        ) +
+                      '</div>' +
                     '</td>' +
                     '<td>' +
-                      '<div style="display:grid;grid-template-columns:minmax(80px,1fr) auto;gap:10px;align-items:center">' +
+                      '<div style="display:grid;grid-template-columns:minmax(90px,1fr) auto;gap:10px;align-items:center">' +
                         '<div style="height:12px;background:#e8eef5;border-radius:999px;overflow:hidden">' +
                           '<div style="height:100%;width:' +
                             width.toFixed(2) +
@@ -3115,6 +3067,13 @@
                         '</strong>' +
                       '</div>' +
                     '</td>' +
+                    '<td>' +
+                      escapeHtml(
+                        formatNumber(
+                          item.consultationRate
+                        )
+                      ) +
+                    '</td>' +
                   '</tr>'
                 );
               }
@@ -3122,12 +3081,16 @@
             .join('');
 
         ELEMENTS.rankingContainer.innerHTML =
+          '<div style="padding:0 16px 12px;color:var(--muted);font-size:.8rem">' +
+            'Top 5 districts by current-period ILI cases. Rate is per 100 outpatient attendances.' +
+          '</div>' +
           '<table class="ranking-table">' +
             '<thead>' +
               '<tr>' +
-                '<th>Rank</th>' +
+                '<th>#</th>' +
                 '<th>District</th>' +
                 '<th>ILI cases</th>' +
+                '<th>Rate / 100 OPD</th>' +
               '</tr>' +
             '</thead>' +
             '<tbody>' +
