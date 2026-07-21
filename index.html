@@ -974,6 +974,56 @@
       }
     }
 
+
+    .chart-y-ticks {
+      position: absolute;
+      left: 0;
+      top: 18px;
+      bottom: 54px;
+      width: 42px;
+      pointer-events: none;
+    }
+
+    .chart-y-tick {
+      position: absolute;
+      right: 4px;
+      transform: translateY(50%);
+      font-size: 0.66rem;
+      color: var(--muted);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .chart-gridlines {
+      position: absolute;
+      left: 46px;
+      right: 8px;
+      top: 18px;
+      bottom: 54px;
+      pointer-events: none;
+    }
+
+    .chart-gridline {
+      position: absolute;
+      left: 0;
+      right: 0;
+      border-top: 1px solid #e5ebf2;
+    }
+
+    @media (max-width: 700px) {
+      .chart-y-ticks {
+        width: 30px;
+      }
+
+      .chart-gridlines {
+        left: 34px;
+      }
+
+      .chart-y-tick {
+        font-size: 0.56rem;
+      }
+    }
+
   </style>
 </head>
 
@@ -2500,6 +2550,113 @@
     }
 
 
+    function getNiceAxisMaximum(
+      maximumValue
+    ) {
+      const value =
+        Number(
+          maximumValue || 0
+        );
+
+      if (
+        !Number.isFinite(
+          value
+        ) ||
+        value <= 0
+      ) {
+        return 5;
+      }
+
+      const roughStep =
+        value / 5;
+
+      const magnitude =
+        Math.pow(
+          10,
+          Math.floor(
+            Math.log10(
+              roughStep
+            )
+          )
+        );
+
+      const normalized =
+        roughStep /
+        magnitude;
+
+      let niceMultiplier;
+
+      if (
+        normalized <= 1
+      ) {
+        niceMultiplier = 1;
+
+      } else if (
+        normalized <= 2
+      ) {
+        niceMultiplier = 2;
+
+      } else if (
+        normalized <= 5
+      ) {
+        niceMultiplier = 5;
+
+      } else {
+        niceMultiplier = 10;
+      }
+
+      const step =
+        niceMultiplier *
+        magnitude;
+
+      return (
+        Math.ceil(
+          value /
+          step
+        ) *
+        step
+      );
+    }
+
+
+    function buildYAxisScale(
+      axisMaximum,
+      tickCount
+    ) {
+      const ticks = [];
+
+      for (
+        let index = 0;
+        index <= tickCount;
+        index++
+      ) {
+        const value =
+          (
+            axisMaximum /
+            tickCount
+          ) *
+          index;
+
+        const bottomPercent =
+          (
+            value /
+            axisMaximum
+          ) *
+          100;
+
+        ticks.push({
+          value:
+            value,
+
+          bottomPercent:
+            bottomPercent
+        });
+      }
+
+      return ticks;
+    }
+
+
     function drawVerticalTimeBarChart(
       records,
       analysis
@@ -2717,8 +2874,19 @@
         }
       );
 
+      const axisMaximum =
+        getNiceAxisMaximum(
+          maximumTotal
+        );
+
       maximumTotal =
         maximumTotal || 1;
+
+      const yAxisTicks =
+        buildYAxisScale(
+          axisMaximum,
+          5
+        );
 
       const barColours = [
         '#1d5f8a',
@@ -2763,7 +2931,7 @@
                   100,
                   (
                     total /
-                    maximumTotal
+                    axisMaximum
                   ) *
                   100
                 )
@@ -2922,10 +3090,56 @@
           ' Laboratory bars include positive samples only and are stacked by Aetiology.';
       }
 
+      const yTickLabels =
+        yAxisTicks
+          .map(
+            function (tick) {
+              return (
+                '<div class="chart-y-tick" style="bottom:' +
+                  tick.bottomPercent.toFixed(2) +
+                '%">' +
+                  escapeHtml(
+                    formatNumber(
+                      tick.value
+                    )
+                  ) +
+                '</div>'
+              );
+            }
+          )
+          .join('');
+
+      const yGridlines =
+        yAxisTicks
+          .filter(
+            function (tick) {
+              return (
+                tick.value >
+                0
+              );
+            }
+          )
+          .map(
+            function (tick) {
+              return (
+                '<div class="chart-gridline" style="bottom:' +
+                  tick.bottomPercent.toFixed(2) +
+                '%"></div>'
+              );
+            }
+          )
+          .join('');
+
       ELEMENTS.mainChart.innerHTML =
         '<div class="chart-axis-shell">' +
           '<div class="chart-y-axis-title">' +
             'Cases' +
+          '</div>' +
+          '<div class="chart-y-ticks">' +
+            yTickLabels +
+          '</div>' +
+          '<div class="chart-gridlines">' +
+            yGridlines +
           '</div>' +
           '<div class="time-chart-shell">' +
             '<div class="time-chart">' +
