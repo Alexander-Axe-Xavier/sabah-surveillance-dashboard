@@ -986,7 +986,8 @@
       scope: 'STATE',
       apiUrl: '',
       autoRefreshMinutes: 5,
-      autoRefreshTimer: null
+      autoRefreshTimer: null,
+      rankingRequestId: 0
     };
 
     const MODULE_CONFIG = {
@@ -2915,6 +2916,248 @@
     }
 
     function renderRanking() {
+      /*
+       * ILI Clinical statewide view:
+       * rank only the five highest districts for the current valid
+       * epidemiological period.
+       *
+       * This uses a separate compact district-scope API request because
+       * the main chart may currently be showing statewide records only.
+       */
+      if (
+        APP.module ===
+          'ILIC' &&
+        APP.analysis ===
+          'ILI_TREND' &&
+        !APP.district &&
+        !APP.facility
+      ) {
+        renderILITopFiveDistricts();
+        return;
+      }
+
+      renderFallbackRanking();
+    }
+
+
+    async function renderILITopFiveDistricts() {
+      const requestId =
+        ++APP.rankingRequestId;
+
+      ELEMENTS.rankingTitle.textContent =
+        'Top 5 districts — ILI Clinical';
+
+      ELEMENTS.rankingContainer.innerHTML =
+        '<div class="empty-state">' +
+        '<div>Loading district ranking…</div>' +
+        '</div>';
+
+      const currentPeriod =
+        getCurrentOrLatestValidPeriod(
+          getCurrentRecords()
+        ) ||
+        getAuthoritativeCurrentPeriod();
+
+      if (!currentPeriod) {
+        ELEMENTS.rankingContainer.innerHTML =
+          '<div class="empty-state">' +
+          '<div>No current epidemiological period is available.</div>' +
+          '</div>';
+        return;
+      }
+
+      try {
+        const payload =
+          await apiRequest({
+            api:
+              'view',
+
+            module:
+              'ILIC',
+
+            section:
+              'ILI_TREND',
+
+            metric:
+              'ILI_CASES',
+
+            district:
+              '',
+
+            facility:
+              '',
+
+            scope:
+              'DISTRICT',
+
+            period:
+              currentPeriod
+          });
+
+        if (
+          requestId !==
+          APP.rankingRequestId
+        ) {
+          return;
+        }
+
+        const grouped = {};
+
+        (
+          payload.records || []
+        ).forEach(
+          function (record) {
+            const district =
+              record.District_Code ||
+              record.Category ||
+              'Unknown';
+
+            grouped[district] =
+              Number(
+                grouped[district] || 0
+              ) +
+              Number(
+                record.Numeric_Value || 0
+              );
+          }
+        );
+
+        const ranking =
+          Object.keys(
+            grouped
+          )
+            .map(
+              function (district) {
+                return {
+                  district:
+                    district,
+
+                  cases:
+                    grouped[district]
+                };
+              }
+            )
+            .sort(
+              function (
+                left,
+                right
+              ) {
+                return (
+                  right.cases -
+                  left.cases
+                );
+              }
+            )
+            .slice(
+              0,
+              5
+            );
+
+        ELEMENTS.rankingTitle.textContent =
+          'Top 5 districts — ILI Clinical · ' +
+          currentPeriod;
+
+        if (!ranking.length) {
+          ELEMENTS.rankingContainer.innerHTML =
+            '<div class="empty-state">' +
+            '<div>No district ILI records are available for ' +
+            escapeHtml(
+              currentPeriod
+            ) +
+            '.</div>' +
+            '</div>';
+          return;
+        }
+
+        const maximum =
+          ranking[0].cases || 1;
+
+        const rows =
+          ranking
+            .map(
+              function (
+                item,
+                index
+              ) {
+                const width =
+                  Math.max(
+                    3,
+                    (
+                      item.cases /
+                      maximum
+                    ) *
+                    100
+                  );
+
+                return (
+                  '<tr>' +
+                    '<td>' +
+                      (index + 1) +
+                    '</td>' +
+                    '<td>' +
+                      escapeHtml(
+                        item.district
+                      ) +
+                    '</td>' +
+                    '<td>' +
+                      '<div style="display:grid;grid-template-columns:minmax(80px,1fr) auto;gap:10px;align-items:center">' +
+                        '<div style="height:12px;background:#e8eef5;border-radius:999px;overflow:hidden">' +
+                          '<div style="height:100%;width:' +
+                            width.toFixed(2) +
+                            '%;background:var(--primary);border-radius:999px"></div>' +
+                        '</div>' +
+                        '<strong>' +
+                          escapeHtml(
+                            formatNumber(
+                              item.cases
+                            )
+                          ) +
+                        '</strong>' +
+                      '</div>' +
+                    '</td>' +
+                  '</tr>'
+                );
+              }
+            )
+            .join('');
+
+        ELEMENTS.rankingContainer.innerHTML =
+          '<table class="ranking-table">' +
+            '<thead>' +
+              '<tr>' +
+                '<th>Rank</th>' +
+                '<th>District</th>' +
+                '<th>ILI cases</th>' +
+              '</tr>' +
+            '</thead>' +
+            '<tbody>' +
+              rows +
+            '</tbody>' +
+          '</table>';
+
+      } catch (error) {
+        if (
+          requestId !==
+          APP.rankingRequestId
+        ) {
+          return;
+        }
+
+        ELEMENTS.rankingContainer.innerHTML =
+          '<div class="error-state">' +
+          '<div><strong>District ranking error</strong><br>' +
+          escapeHtml(
+            error && error.message
+              ? error.message
+              : String(error)
+          ) +
+          '</div>' +
+          '</div>';
+      }
+    }
+
+
+    function renderFallbackRanking() {
       const records =
         filterByScope(
           getCurrentRecords(),
@@ -2926,13 +3169,15 @@
       records.forEach(
         function (record) {
           const key =
-            APP.scope === 'FACILITY'
+            getEffectiveScope() ===
+              'FACILITY'
               ? (
                   record.Facility_ID ||
                   record.Category ||
                   'Unknown'
                 )
-              : APP.scope === 'DISTRICT'
+              : getEffectiveScope() ===
+                  'DISTRICT'
                 ? (
                     record.District_Code ||
                     record.Category ||
@@ -2959,22 +3204,36 @@
           .map(
             function (key) {
               return {
-                label: key,
-                value: grouped[key]
+                label:
+                  key,
+
+                value:
+                  grouped[key]
               };
             }
           )
           .sort(
-            function (left, right) {
-              return right.value - left.value;
+            function (
+              left,
+              right
+            ) {
+              return (
+                right.value -
+                left.value
+              );
             }
           )
-          .slice(0, 15);
+          .slice(
+            0,
+            15
+          );
 
       ELEMENTS.rankingTitle.textContent =
-        APP.scope === 'FACILITY'
+        getEffectiveScope() ===
+          'FACILITY'
           ? 'Facility ranking'
-          : APP.scope === 'DISTRICT'
+          : getEffectiveScope() ===
+              'DISTRICT'
             ? 'District ranking'
             : 'State / category ranking';
 
@@ -2990,20 +3249,27 @@
       const rows =
         ranking
           .map(
-            function (item, index) {
+            function (
+              item,
+              index
+            ) {
               return (
                 '<tr>' +
-                '<td>' +
-                (index + 1) +
-                '</td>' +
-                '<td>' +
-                escapeHtml(item.label) +
-                '</td>' +
-                '<td>' +
-                escapeHtml(
-                  formatNumber(item.value)
-                ) +
-                '</td>' +
+                  '<td>' +
+                    (index + 1) +
+                  '</td>' +
+                  '<td>' +
+                    escapeHtml(
+                      item.label
+                    ) +
+                  '</td>' +
+                  '<td>' +
+                    escapeHtml(
+                      formatNumber(
+                        item.value
+                      )
+                    ) +
+                  '</td>' +
                 '</tr>'
               );
             }
@@ -3012,18 +3278,19 @@
 
       ELEMENTS.rankingContainer.innerHTML =
         '<table class="ranking-table">' +
-        '<thead>' +
-        '<tr>' +
-        '<th>#</th>' +
-        '<th>Category</th>' +
-        '<th>Value</th>' +
-        '</tr>' +
-        '</thead>' +
-        '<tbody>' +
-        rows +
-        '</tbody>' +
+          '<thead>' +
+            '<tr>' +
+              '<th>#</th>' +
+              '<th>Category</th>' +
+              '<th>Value</th>' +
+            '</tr>' +
+          '</thead>' +
+          '<tbody>' +
+            rows +
+          '</tbody>' +
         '</table>';
     }
+
 
     function filterByScope(records, scope) {
       return records.filter(
