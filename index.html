@@ -2311,33 +2311,52 @@
             }
           );
 
-      const currentPeriod =
+      /*
+       * The Current Period card always follows the authoritative
+       * epidemiological period.
+       */
+      const authoritativePeriod =
         (
           APP.module ===
             'ILIC' ||
           APP.module ===
             'SARIC' ||
           APP.module ===
-            'AGEC'
+            'AGEC' ||
+          APP.module ===
+            'ILIL' ||
+          APP.module ===
+            'SARIL'
         )
           ? getAuthoritativeCurrentPeriod()
           : getCurrentOrLatestValidPeriod(
               records
             );
 
-      const currentRecords =
-        currentPeriod
+      /*
+       * The Current Total card first attempts to use the authoritative
+       * period. If no actual activity is available, it automatically falls
+       * back to the latest non-future reporting period with activity.
+       *
+       * This shared logic applies to ILI Clinical, SARI Clinical,
+       * AGE Clinical, ILI Lab, SARI Lab, and Enterovirus Lab.
+       */
+      let dataPeriod =
+        authoritativePeriod;
+
+      let currentRecords =
+        dataPeriod
           ? records.filter(
               function (record) {
                 return (
                   record.Period_Key ===
-                  currentPeriod
+                  dataPeriod
                 );
               }
             )
           : [];
 
-      const currentTotal =
+      let currentTotal =
         currentRecords.reduce(
           function (
             sum,
@@ -2353,7 +2372,63 @@
           0
         );
 
-      const weeklyTotals = {};
+      if (
+        currentRecords.length ===
+          0 ||
+        currentTotal ===
+          0
+      ) {
+        const latestAvailablePeriod =
+          getCurrentOrLatestValidPeriod(
+            records.filter(
+              function (record) {
+                return (
+                  Number(
+                    record.Numeric_Value || 0
+                  ) >
+                  0
+                );
+              }
+            )
+          );
+
+        if (latestAvailablePeriod) {
+          dataPeriod =
+            latestAvailablePeriod;
+
+          currentRecords =
+            records.filter(
+              function (record) {
+                return (
+                  record.Period_Key ===
+                  dataPeriod
+                );
+              }
+            );
+
+          currentTotal =
+            currentRecords.reduce(
+              function (
+                sum,
+                record
+              ) {
+                return (
+                  sum +
+                  Number(
+                    record.Numeric_Value || 0
+                  )
+                );
+              },
+              0
+            );
+        }
+      }
+
+      /*
+       * Highest value is calculated from totals grouped by reporting
+       * period, not from individual district/facility rows.
+       */
+      const periodTotals = {};
 
       records.forEach(
         function (record) {
@@ -2368,11 +2443,11 @@
             return;
           }
 
-          weeklyTotals[
+          periodTotals[
             period
           ] =
             Number(
-              weeklyTotals[
+              periodTotals[
                 period
               ] || 0
             ) +
@@ -2386,14 +2461,14 @@
       let highestValue = 0;
 
       Object.keys(
-        weeklyTotals
+        periodTotals
       )
         .sort()
         .forEach(
           function (period) {
             const value =
               Number(
-                weeklyTotals[
+                periodTotals[
                   period
                 ] || 0
               );
@@ -2412,11 +2487,17 @@
           }
         );
 
-      const highestWeekLabel =
+      const highestPeriodLabel =
         highestPeriod
-          ? highestPeriod.replace(
-              /^\d{4}-W/,
-              'W'
+          ? (
+              highestPeriod.indexOf(
+                '-W'
+              ) !== -1
+                ? highestPeriod.replace(
+                    /^\d{4}-W/,
+                    'W'
+                  )
+                : highestPeriod
             )
           : '—';
 
@@ -2447,6 +2528,24 @@
               )
             : 'Sabah';
 
+      const currentFoot =
+        dataPeriod
+          ? (
+              selectedArea +
+              ' · ' +
+              dataPeriod +
+              (
+                dataPeriod !==
+                  authoritativePeriod
+                  ? ' · latest available data'
+                  : ''
+              )
+            )
+          : (
+              'No available data for ' +
+              selectedArea
+            );
+
       const cards = [
         {
           label:
@@ -2465,7 +2564,7 @@
             'Current period',
 
           value:
-            currentPeriod ||
+            authoritativePeriod ||
             '—',
 
           foot:
@@ -2481,21 +2580,12 @@
             ),
 
           foot:
-            currentPeriod
-              ? (
-                  selectedArea +
-                  ' · ' +
-                  currentPeriod
-                )
-              : (
-                  'No current-period data for ' +
-                  selectedArea
-                )
+            currentFoot
         },
         {
           label:
             'Highest value — ' +
-            highestWeekLabel,
+            highestPeriodLabel,
 
           value:
             formatNumber(
@@ -2510,7 +2600,7 @@
                   highestPeriod
                 )
               : (
-                  'No weekly data for ' +
+                  'No historical data for ' +
                   selectedArea
                 )
         }
