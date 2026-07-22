@@ -3807,67 +3807,83 @@ select,button,.view-tab{background:rgba(255,255,255,.5)!important;border:1px sol
           'age-ranking'
       };
 
-      const records =
-        getCurrentRecords()
-          .filter(
-            function (record) {
-              return (
-                !isFuturePeriod(
-                  record.Period_Key
-                )
-              );
-            }
-          );
+      const requestedPeriod =
+        getAuthoritativeCurrentPeriod();
 
-      const totals =
-        aggregateNarrativePeriodTotals(
-          records
-        );
+      /*
+       * Use the same authoritative ranking API as the dashboard ranking.
+       * The narrative does not calculate the statewide total independently.
+       */
+      const currentPayload =
+        await apiRequest({
+          api:
+            rankingApis[
+              APP.module
+            ],
 
-      const periods =
-        Object.keys(
-          totals
-        )
-          .filter(
-            function (period) {
-              return (
-                totals[
-                  period
-                ] >
-                0
-              );
-            }
-          )
-          .sort();
+          period:
+            requestedPeriod,
+
+          limit:
+            5
+        });
 
       const currentPeriod =
-        periods.length
-          ? periods[
-              periods.length - 1
-            ]
-          : (
-              getAuthoritativeCurrentPeriod() ||
-              'Current period'
-            );
+        currentPayload.period ||
+        requestedPeriod ||
+        'Current period';
 
       const previousPeriod =
+        currentPayload.previousPeriod ||
         getPreviousNarrativePeriod(
           currentPeriod,
           'WEEKLY'
         );
 
+      const previousPayload =
+        previousPeriod
+          ? await apiRequest({
+              api:
+                rankingApis[
+                  APP.module
+                ],
+
+              period:
+                previousPeriod,
+
+              limit:
+                5
+            })
+          : null;
+
       const currentTotal =
         Number(
-          totals[
-            currentPeriod
-          ] || 0
+          currentPayload.periodActivity &&
+          currentPayload.periodActivity.totalCases !==
+            undefined
+            ? currentPayload.periodActivity.totalCases
+            : (
+                currentPayload.totalCases !==
+                  undefined
+                  ? currentPayload.totalCases
+                  : 0
+              )
         );
 
       const previousTotal =
         Number(
-          totals[
-            previousPeriod
-          ] || 0
+          previousPayload &&
+          previousPayload.periodActivity &&
+          previousPayload.periodActivity.totalCases !==
+            undefined
+            ? previousPayload.periodActivity.totalCases
+            : (
+                previousPayload &&
+                previousPayload.totalCases !==
+                  undefined
+                  ? previousPayload.totalCases
+                  : 0
+              )
         );
 
       const comparison =
@@ -3876,22 +3892,8 @@ select,button,.view-tab{background:rgba(255,255,255,.5)!important;border:1px sol
           previousTotal
         );
 
-      const rankingPayload =
-        await apiRequest({
-          api:
-            rankingApis[
-              APP.module
-            ],
-
-          period:
-            currentPeriod,
-
-          limit:
-            5
-        });
-
       const ranking =
-        rankingPayload.ranking || [];
+        currentPayload.ranking || [];
 
       const highest =
         ranking.length
