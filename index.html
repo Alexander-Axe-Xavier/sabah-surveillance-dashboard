@@ -1584,6 +1584,23 @@
     }
 
 </style>
+<style id="iphone-glass-theme">
+:root{--glass:rgba(255,255,255,.58);--glass-border:rgba(255,255,255,.72);--glass-shadow:0 18px 45px rgba(26,55,86,.14),0 2px 8px rgba(26,55,86,.08);--ios-blue:#0a84ff;--ios-blue-dark:#0066cc;--ios-text:#0f1728;--ios-muted:rgba(34,49,73,.62)}
+html{min-height:100%;background:radial-gradient(circle at 10% 10%,rgba(123,210,255,.42),transparent 34%),radial-gradient(circle at 88% 16%,rgba(191,90,242,.22),transparent 28%),radial-gradient(circle at 72% 82%,rgba(48,209,88,.16),transparent 30%),linear-gradient(145deg,#edf6ff 0%,#f7f8fc 46%,#eaf2fb 100%);background-attachment:fixed}
+body{min-height:100vh;color:var(--ios-text);background:transparent!important}
+.topbar,.filters,.kpi-card,.panel,.module-tab,select,button,.view-tab,.ranking-period-chip{-webkit-backdrop-filter:blur(24px) saturate(165%);backdrop-filter:blur(24px) saturate(165%)}
+.topbar{background:linear-gradient(135deg,rgba(12,71,111,.82),rgba(21,103,154,.76))!important;border:1px solid rgba(255,255,255,.28)!important;box-shadow:0 18px 45px rgba(14,55,88,.2),inset 0 1px 0 rgba(255,255,255,.26);border-radius:28px!important}.topbar,.topbar *{color:#fff}
+.module-tab{background:rgba(255,255,255,.5)!important;border:1px solid rgba(255,255,255,.82)!important;color:var(--ios-text)!important;box-shadow:0 8px 22px rgba(43,73,108,.1),inset 0 1px 0 rgba(255,255,255,.95);border-radius:18px!important;transition:.2s ease}.module-tab:hover{transform:translateY(-1px);background:rgba(255,255,255,.7)!important}.module-tab.active{background:linear-gradient(135deg,rgba(10,132,255,.92),rgba(0,102,204,.88))!important;color:#fff!important;border-color:rgba(255,255,255,.46)!important;box-shadow:0 12px 26px rgba(10,132,255,.28),inset 0 1px 0 rgba(255,255,255,.34)}
+.filters,.kpi-card,.panel{background:linear-gradient(145deg,rgba(255,255,255,.7),rgba(255,255,255,.45))!important;border:1px solid var(--glass-border)!important;box-shadow:var(--glass-shadow),inset 0 1px 0 rgba(255,255,255,.82);border-radius:26px!important}
+.kpi-label,.field-label,.panel-header p,.kpi-foot,.ranking-summary-text,.district-code,.lab-series-note{color:var(--ios-muted)!important}.kpi-value,.panel-header h3,.district-name,.case-value,.rate-value{color:var(--ios-text)!important}
+select,button,.view-tab{background:rgba(255,255,255,.5)!important;border:1px solid rgba(255,255,255,.78)!important;box-shadow:0 7px 18px rgba(44,73,103,.08),inset 0 1px 0 rgba(255,255,255,.9);border-radius:16px!important;color:var(--ios-text)!important}.view-tab.active,.clear-button,.primary-button{background:linear-gradient(135deg,var(--ios-blue),var(--ios-blue-dark))!important;color:#fff!important}
+.panel-header{border-bottom:1px solid rgba(100,121,145,.16)!important;background:rgba(255,255,255,.16)}.ranking-table thead{background:rgba(255,255,255,.32)!important}.ranking-table th,.ranking-table td{border-bottom-color:rgba(96,117,141,.14)!important}.ranking-table tbody tr:hover{background:rgba(255,255,255,.28)}
+.case-bar-track{background:rgba(124,145,171,.18)!important}.case-bar-fill,.time-bar{background:linear-gradient(180deg,#3ca4ff,#0a84ff)!important;box-shadow:0 5px 12px rgba(10,132,255,.22),inset 0 1px 0 rgba(255,255,255,.3)}.chart-gridline{border-top-color:rgba(73,99,126,.13)!important}
+.ranking-period-chip{background:rgba(255,255,255,.46)!important;border-color:rgba(255,255,255,.72)!important;color:var(--ios-text)!important}.lab-trend-panel{background:linear-gradient(145deg,rgba(255,255,255,.6),rgba(255,255,255,.38))!important;border:1px solid rgba(255,255,255,.66)!important;box-shadow:0 12px 34px rgba(30,58,89,.1),inset 0 1px 0 rgba(255,255,255,.76);border-radius:20px!important}.lab-trend-chart{background:transparent!important}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:rgba(255,255,255,.2);border-radius:999px}::-webkit-scrollbar-thumb{background:rgba(64,95,129,.24);border:2px solid rgba(255,255,255,.52);border-radius:999px}
+@media(max-width:900px){.topbar,.filters,.kpi-card,.panel{border-radius:22px!important}.module-tab,select,button,.view-tab{border-radius:14px!important}}
+@media(max-width:600px){.topbar,.filters,.kpi-card,.panel{-webkit-backdrop-filter:blur(18px) saturate(150%);backdrop-filter:blur(18px) saturate(150%)}}
+</style>
 </head>
 
 <body>
