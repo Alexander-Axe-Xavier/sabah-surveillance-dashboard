@@ -2987,8 +2987,12 @@
           },
           {
             label:
-              APP.module ===
-                'EVL'
+              (
+                APP.module ===
+                  'EVL' ||
+                APP.module ===
+                  'SARIL'
+              )
                 ? (
                     'Total Positive — ' +
                     String(
@@ -3011,8 +3015,12 @@
             value:
               formatNumber(
                 Math.round(
-                  APP.module ===
-                    'EVL'
+                  (
+                    APP.module ===
+                      'EVL' ||
+                    APP.module ===
+                      'SARIL'
+                  )
                     ? (
                         payload.currentYearPositiveSamples || 0
                       )
@@ -3023,8 +3031,12 @@
               ),
 
             foot:
-              APP.module ===
-                'EVL'
+              (
+                APP.module ===
+                  'EVL' ||
+                APP.module ===
+                  'SARIL'
+              )
                 ? (
                     selectedArea +
                     ' · ' +
