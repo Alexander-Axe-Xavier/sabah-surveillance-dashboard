@@ -2590,6 +2590,87 @@ select,button,.view-tab{background:rgba(255,255,255,.5)!important;border:1px sol
   }
 </style>
 
+
+<style id="laboratory-vertical-three-panel-layout">
+  .main-grid.lab-layout {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 18px !important;
+    align-items: start !important;
+    width: 100% !important;
+  }
+
+  .main-grid.lab-layout > .panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+
+  .main-grid.lab-layout .lab-trend-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 18px !important;
+    width: 100% !important;
+  }
+
+  .main-grid.lab-layout .lab-trend-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .main-grid.lab-layout > #secondaryPanel {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .main-grid.lab-layout > #secondaryPanel #secondaryContainer {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+  }
+
+  .main-grid.lab-layout > #secondaryPanel .ranking-table {
+    width: 100% !important;
+    min-width: 780px !important;
+    table-layout: fixed !important;
+  }
+
+  .main-grid.lab-layout .lab-grouped-chart-shell {
+    width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+  }
+
+  .main-grid.lab-layout .lab-grouped-chart {
+    min-width: max-content !important;
+  }
+
+  @media (max-width: 900px) {
+    .main-grid.lab-layout,
+    .main-grid.lab-layout .lab-trend-grid {
+      gap: 14px !important;
+    }
+
+    .main-grid.lab-layout > #secondaryPanel .ranking-table {
+      min-width: 720px !important;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .main-grid.lab-layout,
+    .main-grid.lab-layout .lab-trend-grid {
+      gap: 12px !important;
+    }
+
+    .main-grid.lab-layout > #secondaryPanel .ranking-table {
+      min-width: 680px !important;
+    }
+  }
+</style>
+
 </head>
 
 <body>
