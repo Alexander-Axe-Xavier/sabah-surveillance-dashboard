@@ -3439,6 +3439,16 @@
         return;
       }
 
+      if (
+        APP.module ===
+          'AGEC' &&
+        !APP.district &&
+        !APP.facility
+      ) {
+        renderAGETopFiveDistricts();
+        return;
+      }
+
       renderFallbackRanking();
     }
 
@@ -3955,6 +3965,195 @@
                 '<th>Total SARI Cases</th>' +
                 '<th>Weekly Change</th>' +
                 '<th>Admission Proportion</th>' +
+              '</tr>' +
+            '</thead>' +
+            '<tbody>' +
+              rows +
+            '</tbody>' +
+          '</table>';
+
+      } catch (error) {
+        if (
+          requestId !==
+          APP.rankingRequestId
+        ) {
+          return;
+        }
+
+        ELEMENTS.rankingContainer.innerHTML =
+          '<div class="error-state">' +
+            '<div><strong>District ranking error</strong><br>' +
+              escapeHtml(
+                error && error.message
+                  ? error.message
+                  : String(error)
+              ) +
+            '</div>' +
+          '</div>';
+      }
+    }
+
+
+    async function renderAGETopFiveDistricts() {
+      const requestId =
+        ++APP.rankingRequestId;
+
+      ELEMENTS.rankingTitle.textContent =
+        'Top 5 districts — AGE Clinical';
+
+      ELEMENTS.rankingContainer.innerHTML =
+        '<div class="empty-state">' +
+          '<div>Loading district ranking…</div>' +
+        '</div>';
+
+      const requestedPeriod =
+        getAuthoritativeCurrentPeriod();
+
+      try {
+        const payload =
+          await apiRequest({
+            api:
+              'age-ranking',
+
+            period:
+              requestedPeriod,
+
+            limit:
+              5
+          });
+
+        if (
+          requestId !==
+          APP.rankingRequestId
+        ) {
+          return;
+        }
+
+        const ranking =
+          payload.ranking || [];
+
+        const effectivePeriod =
+          payload.period ||
+          requestedPeriod ||
+          'Current period';
+
+        ELEMENTS.rankingTitle.textContent =
+          'District ranking (AGE Clinical) — ' +
+          effectivePeriod;
+
+        if (!ranking.length) {
+          ELEMENTS.rankingContainer.innerHTML =
+            '<div class="empty-state">' +
+              '<div>No district AGE records are available for ' +
+                escapeHtml(
+                  effectivePeriod
+                ) +
+              '.</div>' +
+            '</div>';
+          return;
+        }
+
+        const maximum =
+          Math.max(
+            1,
+            Number(
+              ranking[0].cases || 0
+            )
+          );
+
+        const rows =
+          ranking
+            .slice(
+              0,
+              5
+            )
+            .map(
+              function (
+                item,
+                index
+              ) {
+                const width =
+                  Math.max(
+                    3,
+                    (
+                      Number(
+                        item.cases || 0
+                      ) /
+                      maximum
+                    ) *
+                    100
+                  );
+
+                return (
+                  '<tr>' +
+                    '<td>' +
+                      (index + 1) +
+                    '</td>' +
+                    '<td>' +
+                      '<div class="district-cell">' +
+                        '<span class="district-name">' +
+                          escapeHtml(
+                            item.districtName ||
+                            item.districtCode
+                          ) +
+                        '</span>' +
+                        '<span class="district-code">' +
+                          escapeHtml(
+                            item.districtCode || ''
+                          ) +
+                        '</span>' +
+                      '</div>' +
+                    '</td>' +
+                    '<td>' +
+                      '<div class="case-bar-cell">' +
+                        '<div class="case-bar-track">' +
+                          '<div class="case-bar-fill" style="width:' +
+                            width.toFixed(2) +
+                          '%"></div>' +
+                        '</div>' +
+                        '<span class="case-value">' +
+                          escapeHtml(
+                            formatNumber(
+                              item.cases
+                            )
+                          ) +
+                        '</span>' +
+                      '</div>' +
+                    '</td>' +
+                    '<td>' +
+                      formatWeeklyCaseChange(
+                        item
+                      ) +
+                    '</td>' +
+                  '</tr>'
+                );
+              }
+            )
+            .join('');
+
+        ELEMENTS.rankingContainer.innerHTML =
+          '<div class="ranking-summary">' +
+            '<div class="ranking-summary-text">' +
+              'Top five districts ranked by current-period AGE cases.' +
+            '</div>' +
+            '<div class="ranking-period-chip">' +
+              escapeHtml(
+                effectivePeriod
+              ) +
+              ' vs ' +
+              escapeHtml(
+                payload.previousPeriod ||
+                'previous week'
+              ) +
+            '</div>' +
+          '</div>' +
+          '<table class="ranking-table">' +
+            '<thead>' +
+              '<tr>' +
+                '<th>#</th>' +
+                '<th>District</th>' +
+                '<th>Total AGE Cases</th>' +
+                '<th>Weekly Change</th>' +
               '</tr>' +
             '</thead>' +
             '<tbody>' +
