@@ -2576,7 +2576,15 @@
 
           value:
             formatNumber(
-              currentTotal
+              (
+                APP.module === 'ILIL' ||
+                APP.module === 'SARIL' ||
+                APP.module === 'EVL'
+              )
+                ? Math.round(
+                    currentTotal
+                  )
+                : currentTotal
             ),
 
           foot:
@@ -2589,7 +2597,15 @@
 
           value:
             formatNumber(
-              highestValue
+              (
+                APP.module === 'ILIL' ||
+                APP.module === 'SARIL' ||
+                APP.module === 'EVL'
+              )
+                ? Math.round(
+                    highestValue
+                  )
+                : highestValue
             ),
 
           foot:
@@ -2837,6 +2853,18 @@
     }
 
 
+    function isLaboratoryAetiologyView() {
+      return (
+        APP.analysis ===
+          'ILIL_AETIOLOGY' ||
+        APP.analysis ===
+          'SARIL_AETIOLOGY' ||
+        APP.analysis ===
+          'EVL_AETIOLOGY'
+      );
+    }
+
+
     function drawVerticalTimeBarChart(
       records,
       analysis
@@ -3019,6 +3047,67 @@
           maximumSeries
         );
 
+      /*
+       * Laboratory aetiology trend:
+       * - series are ordered by total positive samples;
+       * - each period is displayed as the fraction of all positive
+       *   aetiologies for that period.
+       */
+      if (
+        isLaboratoryAetiologyView()
+      ) {
+        periods.forEach(
+          function (period) {
+            const periodPositiveTotal =
+              seriesNames.reduce(
+                function (
+                  sum,
+                  series
+                ) {
+                  return (
+                    sum +
+                    Number(
+                      byPeriod[
+                        period
+                      ][
+                        series
+                      ] || 0
+                    )
+                  );
+                },
+                0
+              );
+
+            seriesNames.forEach(
+              function (series) {
+                const rawValue =
+                  Number(
+                    byPeriod[
+                      period
+                    ][
+                      series
+                    ] || 0
+                  );
+
+                byPeriod[
+                  period
+                ][
+                  series
+                ] =
+                  periodPositiveTotal >
+                    0
+                    ? (
+                        rawValue /
+                        periodPositiveTotal
+                      ) *
+                      100
+                    : 0;
+              }
+            );
+          }
+        );
+      }
+
       if (!seriesNames.length) {
         seriesNames = [
           'No data'
@@ -3055,9 +3144,11 @@
       );
 
       const axisMaximum =
-        getNiceAxisMaximum(
-          maximumTotal
-        );
+        isLaboratoryAetiologyView()
+          ? 100
+          : getNiceAxisMaximum(
+              maximumTotal
+            );
 
       maximumTotal =
         maximumTotal || 1;
@@ -3267,7 +3358,7 @@
           'EVL_AETIOLOGY'
       ) {
         note +=
-          ' Laboratory bars include positive samples only and are stacked by Aetiology.';
+          ' Aetiologies are ordered by total positive samples. Each stacked segment shows that aetiology as a fraction of all positive samples in the same period.';
       }
 
       const yTickLabels =
@@ -3313,7 +3404,11 @@
       ELEMENTS.mainChart.innerHTML =
         '<div class="chart-axis-shell">' +
           '<div class="chart-y-axis-title">' +
-            'Cases' +
+            (
+              isLaboratoryAetiologyView()
+                ? 'Positive Aetiology Fraction (%)'
+                : 'Cases'
+            ) +
           '</div>' +
           '<div class="chart-y-ticks">' +
             yTickLabels +
@@ -3536,6 +3631,18 @@
         !APP.facility
       ) {
         renderAGETopFiveDistricts();
+        return;
+      }
+
+      if (
+        (
+          APP.module === 'ILIL' ||
+          APP.module === 'SARIL' ||
+          APP.module === 'EVL'
+        ) &&
+        !APP.facility
+      ) {
+        renderLabSentinelRanking();
         return;
       }
 
@@ -4262,6 +4369,219 @@
         ELEMENTS.rankingContainer.innerHTML =
           '<div class="error-state">' +
             '<div><strong>District ranking error</strong><br>' +
+              escapeHtml(
+                error && error.message
+                  ? error.message
+                  : String(error)
+              ) +
+            '</div>' +
+          '</div>';
+      }
+    }
+
+
+    async function renderLabSentinelRanking() {
+      const requestId =
+        ++APP.rankingRequestId;
+
+      const moduleLabel =
+        MODULE_CONFIG[
+          APP.module
+        ].label;
+
+      ELEMENTS.rankingTitle.textContent =
+        'Sentinel ranking — ' +
+        moduleLabel;
+
+      ELEMENTS.rankingContainer.innerHTML =
+        '<div class="empty-state">' +
+          '<div>Loading sentinel ranking…</div>' +
+        '</div>';
+
+      const requestedPeriod =
+        getCurrentOrLatestValidPeriod(
+          getCurrentRecords()
+        );
+
+      try {
+        const payload =
+          await apiRequest({
+            api:
+              'lab-sentinel-ranking',
+
+            module:
+              APP.module,
+
+            period:
+              requestedPeriod
+          });
+
+        if (
+          requestId !==
+          APP.rankingRequestId
+        ) {
+          return;
+        }
+
+        let sentinels =
+          payload.sentinels || [];
+
+        if (APP.district) {
+          sentinels =
+            sentinels.filter(
+              function (item) {
+                return (
+                  item.districtCode ===
+                  APP.district
+                );
+              }
+            );
+        }
+
+        ELEMENTS.rankingTitle.textContent =
+          'Sentinel ranking (' +
+          moduleLabel +
+          ') — ' +
+          (
+            payload.period ||
+            requestedPeriod ||
+            'Current period'
+          );
+
+        if (!sentinels.length) {
+          ELEMENTS.rankingContainer.innerHTML =
+            '<div class="empty-state">' +
+              '<div>No sentinel laboratory records are available.</div>' +
+            '</div>';
+          return;
+        }
+
+        const maximum =
+          Math.max(
+            1,
+            Number(
+              sentinels[0].positive || 0
+            )
+          );
+
+        const rows =
+          sentinels.map(
+            function (
+              item,
+              index
+            ) {
+              const width =
+                Math.max(
+                  2,
+                  (
+                    Number(
+                      item.positive || 0
+                    ) /
+                    maximum
+                  ) *
+                  100
+                );
+
+              return (
+                '<tr>' +
+                  '<td>' +
+                    (index + 1) +
+                  '</td>' +
+                  '<td>' +
+                    '<div class="district-cell">' +
+                      '<span class="district-name">' +
+                        escapeHtml(
+                          item.displayName
+                        ) +
+                      '</span>' +
+                      '<span class="district-code">' +
+                        escapeHtml(
+                          item.facilityId || ''
+                        ) +
+                      '</span>' +
+                    '</div>' +
+                  '</td>' +
+                  '<td>' +
+                    '<div class="case-bar-cell">' +
+                      '<div class="case-bar-track">' +
+                        '<div class="case-bar-fill" style="width:' +
+                          width.toFixed(2) +
+                        '%"></div>' +
+                      '</div>' +
+                      '<span class="case-value">' +
+                        escapeHtml(
+                          formatNumber(
+                            Math.round(
+                              item.positive
+                            )
+                          )
+                        ) +
+                      '</span>' +
+                    '</div>' +
+                  '</td>' +
+                  '<td>' +
+                    escapeHtml(
+                      formatNumber(
+                        Math.round(
+                          item.tested
+                        )
+                      )
+                    ) +
+                  '</td>' +
+                  '<td>' +
+                    '<span class="rate-value">' +
+                      escapeHtml(
+                        formatNumber(
+                          item.positivityRate
+                        )
+                      ) +
+                      '%' +
+                    '</span>' +
+                  '</td>' +
+                '</tr>'
+              );
+            }
+          ).join('');
+
+        ELEMENTS.rankingContainer.innerHTML =
+          '<div class="ranking-summary">' +
+            '<div class="ranking-summary-text">' +
+              'All sentinels ranked by total positive samples.' +
+            '</div>' +
+            '<div class="ranking-period-chip">' +
+              escapeHtml(
+                payload.period ||
+                requestedPeriod ||
+                'Current period'
+              ) +
+            '</div>' +
+          '</div>' +
+          '<table class="ranking-table">' +
+            '<thead>' +
+              '<tr>' +
+                '<th>#</th>' +
+                '<th>Sentinel</th>' +
+                '<th>Positive Samples</th>' +
+                '<th>Tested Samples</th>' +
+                '<th>Positivity Rate</th>' +
+              '</tr>' +
+            '</thead>' +
+            '<tbody>' +
+              rows +
+            '</tbody>' +
+          '</table>';
+
+      } catch (error) {
+        if (
+          requestId !==
+          APP.rankingRequestId
+        ) {
+          return;
+        }
+
+        ELEMENTS.rankingContainer.innerHTML =
+          '<div class="error-state">' +
+            '<div><strong>Sentinel ranking error</strong><br>' +
               escapeHtml(
                 error && error.message
                   ? error.message
