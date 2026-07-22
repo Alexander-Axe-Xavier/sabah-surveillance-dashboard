@@ -1106,6 +1106,127 @@
       }
     }
 
+
+    /*
+     * CLINICAL TREND AXIS ALIGNMENT
+     *
+     * The Y-axis labels, gridlines, and bars now share the exact same
+     * 320-pixel plotting region. The epidemiological-week labels occupy
+     * a separate 20-pixel row and are no longer included in the bar scale.
+     */
+    :root {
+      --clinical-plot-height: 320px;
+      --clinical-label-height: 20px;
+    }
+
+    .chart-axis-shell {
+      padding-left: 46px;
+      padding-bottom: 34px;
+    }
+
+    .time-chart-shell {
+      padding: 8px 8px 14px 0;
+    }
+
+    .time-chart {
+      height: auto;
+      display: block;
+    }
+
+    .time-chart-plot {
+      height:
+        calc(
+          var(--clinical-plot-height) +
+          var(--clinical-label-height)
+        );
+      min-height:
+        calc(
+          var(--clinical-plot-height) +
+          var(--clinical-label-height)
+        );
+      padding: 0 8px 0 0;
+      align-items: stretch;
+      background: none;
+      border-left: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .time-period-group {
+      height:
+        calc(
+          var(--clinical-plot-height) +
+          var(--clinical-label-height)
+        );
+      display: grid;
+      grid-template-rows:
+        var(--clinical-plot-height)
+        var(--clinical-label-height);
+      align-items: stretch;
+      justify-content: stretch;
+    }
+
+    .time-bars {
+      height: var(--clinical-plot-height);
+      min-height: var(--clinical-plot-height);
+      align-items: flex-end;
+    }
+
+    .time-period-label {
+      height: var(--clinical-label-height);
+      margin-top: 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      line-height: 1;
+      padding-bottom: 2px;
+    }
+
+    .chart-y-ticks {
+      top: 8px;
+      bottom: auto;
+      height: var(--clinical-plot-height);
+      width: 42px;
+    }
+
+    .chart-gridlines {
+      top: 8px;
+      bottom: auto;
+      left: 46px;
+      right: 16px;
+      height: var(--clinical-plot-height);
+    }
+
+    .chart-gridline {
+      z-index: 0;
+    }
+
+    .time-chart-plot,
+    .time-period-group,
+    .time-bars,
+    .time-stack {
+      position: relative;
+      z-index: 1;
+    }
+
+    @media (max-width: 700px) {
+      :root {
+        --clinical-plot-height: 280px;
+      }
+
+      .chart-axis-shell {
+        padding-left: 34px;
+      }
+
+      .chart-y-ticks {
+        width: 30px;
+      }
+
+      .chart-gridlines {
+        left: 34px;
+        right: 14px;
+      }
+    }
+
   </style>
 </head>
 
