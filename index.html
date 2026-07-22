@@ -1227,7 +1227,24 @@
       }
     }
 
-  </style>
+  
+    /* ===== Clinical trend + ranking side-by-side ===== */
+
+    .clinical-dashboard-grid{
+      display:grid;
+      grid-template-columns:minmax(0,2fr) minmax(360px,1fr);
+      gap:18px;
+      align-items:start;
+      width:100%;
+    }
+
+    @media (max-width:1200px){
+      .clinical-dashboard-grid{
+        grid-template-columns:1fr;
+      }
+    }
+
+</style>
 </head>
 
 <body>
@@ -2201,6 +2218,14 @@
       renderViewTabs();
       renderMainChart();
       configureRankingPlacement();
+
+      if(
+        APP.module==='ILIC'||
+        APP.module==='SARIC'||
+        APP.module==='AGEC'
+      ){
+        moveClinicalRankingBesideTrend();
+      }
       if (
         typeof renderIntelligence === 'function' &&
         document.querySelector(
@@ -4635,7 +4660,57 @@
     }
 
 
-    function configureRankingPlacement() {
+    
+    function moveClinicalRankingBesideTrend(){
+
+      const chartPanel=
+        ELEMENTS.mainChart.closest('.panel');
+
+      const rankingPanel=
+        document.getElementById(
+          'primaryRankingPanel'
+        );
+
+      if(
+        !chartPanel||
+        !rankingPanel
+      ){
+        return;
+      }
+
+      let wrapper=
+        chartPanel.parentElement.querySelector(
+          '.clinical-dashboard-grid'
+        );
+
+      if(!wrapper){
+
+        wrapper=document.createElement('div');
+        wrapper.className='clinical-dashboard-grid';
+
+        chartPanel.parentNode.insertBefore(
+          wrapper,
+          chartPanel
+        );
+
+        wrapper.appendChild(chartPanel);
+        wrapper.appendChild(rankingPanel);
+
+      }else{
+
+        if(chartPanel.parentElement!==wrapper){
+          wrapper.appendChild(chartPanel);
+        }
+
+        if(rankingPanel.parentElement!==wrapper){
+          wrapper.appendChild(rankingPanel);
+        }
+
+      }
+
+    }
+
+function configureRankingPlacement() {
       const isLaboratoryModule =
         (
           APP.module ===
