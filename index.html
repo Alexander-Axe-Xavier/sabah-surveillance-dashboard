@@ -1391,6 +1391,198 @@
       }
     }
 
+
+    /* =========================================================
+       STABLE RESPONSIVE MODULE LAYOUT
+       ========================================================= */
+
+    .main-grid {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+    }
+
+    /*
+     * Clinical desktop/tablet:
+     * trend = flexible main column
+     * district ranking = compact secondary column
+     */
+    .main-grid.clinical-layout {
+      display: grid;
+      grid-template-columns:
+        minmax(0, 2.1fr)
+        minmax(360px, 0.9fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .main-grid.clinical-layout > .panel {
+      min-width: 0;
+      width: 100%;
+      max-width: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    .main-grid.clinical-layout > .panel:first-child {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .main-grid.clinical-layout > .panel:first-child .chart-wrap {
+      flex: 1 1 auto;
+      min-width: 0;
+      width: 100%;
+    }
+
+    .main-grid.clinical-layout > .panel:first-child #mainChart {
+      min-width: 0;
+      width: 100%;
+    }
+
+    .main-grid.clinical-layout > #primaryRankingPanel {
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+    }
+
+    .main-grid.clinical-layout
+      > #primaryRankingPanel
+      > #rankingContainer {
+      flex: 1 1 auto;
+      min-width: 0;
+      width: 100%;
+      overflow-x: auto;
+      overflow-y: auto;
+      max-height: 560px;
+    }
+
+    .main-grid.clinical-layout .ranking-table {
+      width: 100%;
+      min-width: 640px;
+      table-layout: fixed;
+    }
+
+    .main-grid.clinical-layout .ranking-table th,
+    .main-grid.clinical-layout .ranking-table td {
+      padding: 10px 8px;
+      vertical-align: middle;
+    }
+
+    .main-grid.clinical-layout .ranking-table th:nth-child(1),
+    .main-grid.clinical-layout .ranking-table td:nth-child(1) {
+      width: 44px;
+      text-align: center;
+    }
+
+    .main-grid.clinical-layout .ranking-table th:nth-child(2),
+    .main-grid.clinical-layout .ranking-table td:nth-child(2) {
+      width: 28%;
+    }
+
+    .main-grid.clinical-layout .ranking-table th:nth-child(3),
+    .main-grid.clinical-layout .ranking-table td:nth-child(3) {
+      width: 31%;
+    }
+
+    .main-grid.clinical-layout .ranking-table th:nth-child(4),
+    .main-grid.clinical-layout .ranking-table td:nth-child(4) {
+      width: 23%;
+    }
+
+    .main-grid.clinical-layout .ranking-table th:nth-child(5),
+    .main-grid.clinical-layout .ranking-table td:nth-child(5) {
+      width: 18%;
+    }
+
+    .main-grid.clinical-layout .case-bar-cell {
+      grid-template-columns:
+        minmax(72px, 1fr)
+        minmax(38px, auto);
+      gap: 8px;
+    }
+
+    .main-grid.clinical-layout .district-name {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .main-grid.clinical-layout .ranking-summary {
+      padding: 10px 12px 0;
+    }
+
+    /*
+     * Laboratory layout remains the existing trend + sentinel panel layout.
+     */
+    .main-grid.lab-layout {
+      display: grid;
+      grid-template-columns:
+        minmax(0, 2.2fr)
+        minmax(390px, 0.8fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .main-grid.lab-layout > .panel {
+      min-width: 0;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    /*
+     * Medium desktop/tablet: give both panels enough room.
+     */
+    @media (max-width: 1280px) {
+      .main-grid.clinical-layout {
+        grid-template-columns:
+          minmax(0, 1.65fr)
+          minmax(340px, 1fr);
+      }
+
+      .main-grid.lab-layout {
+        grid-template-columns:
+          minmax(0, 1.65fr)
+          minmax(340px, 1fr);
+      }
+    }
+
+    /*
+     * Smartphone and narrow tablet:
+     * stack panels vertically at full width.
+     */
+    @media (max-width: 900px) {
+      .main-grid.clinical-layout,
+      .main-grid.lab-layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .main-grid.clinical-layout
+        > #primaryRankingPanel
+        > #rankingContainer {
+        max-height: none;
+      }
+
+      .main-grid.clinical-layout .ranking-table {
+        min-width: 720px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .main-grid.clinical-layout,
+      .main-grid.lab-layout {
+        gap: 12px;
+      }
+
+      .main-grid.clinical-layout .panel-header,
+      .main-grid.lab-layout .panel-header {
+        padding: 12px;
+      }
+
+      .main-grid.clinical-layout .ranking-summary {
+        align-items: flex-start;
+      }
+    }
+
 </style>
 </head>
 
@@ -2364,15 +2556,7 @@
       renderKpis();
       renderViewTabs();
       renderMainChart();
-      configureRankingPlacement();
-
-      if(
-        APP.module==='ILIC'||
-        APP.module==='SARIC'||
-        APP.module==='AGEC'
-      ){
-        moveClinicalRankingBesideTrend();
-      }
+      configureResponsiveModuleLayout();
       if (
         typeof renderIntelligence === 'function' &&
         document.querySelector(
@@ -4808,57 +4992,51 @@
 
 
     
-    function moveClinicalRankingBesideTrend(){
-
-      const chartPanel=
-        ELEMENTS.mainChart.closest('.panel');
-
-      const rankingPanel=
-        document.getElementById(
-          'primaryRankingPanel'
+    function configureResponsiveModuleLayout() {
+      const mainGrid =
+        document.querySelector(
+          '.main-grid'
         );
 
-      if(
-        !chartPanel||
-        !rankingPanel
-      ){
+      const chartPanel =
+        ELEMENTS.mainChart
+          ? ELEMENTS.mainChart.closest(
+              '.panel'
+            )
+          : null;
+
+      const secondaryPanel =
+        ELEMENTS.secondaryPanel;
+
+      const rankingPanel =
+        ELEMENTS.primaryRankingPanel;
+
+      const content =
+        document.querySelector(
+          'main.content'
+        );
+
+      if (
+        !mainGrid ||
+        !chartPanel ||
+        !secondaryPanel ||
+        !rankingPanel ||
+        !content
+      ) {
         return;
       }
 
-      let wrapper=
-        chartPanel.parentElement.querySelector(
-          '.clinical-dashboard-grid'
+      const isClinical =
+        (
+          APP.module ===
+            'ILIC' ||
+          APP.module ===
+            'SARIC' ||
+          APP.module ===
+            'AGEC'
         );
 
-      if(!wrapper){
-
-        wrapper=document.createElement('div');
-        wrapper.className='clinical-dashboard-grid';
-
-        chartPanel.parentNode.insertBefore(
-          wrapper,
-          chartPanel
-        );
-
-        wrapper.appendChild(chartPanel);
-        wrapper.appendChild(rankingPanel);
-
-      }else{
-
-        if(chartPanel.parentElement!==wrapper){
-          wrapper.appendChild(chartPanel);
-        }
-
-        if(rankingPanel.parentElement!==wrapper){
-          wrapper.appendChild(rankingPanel);
-        }
-
-      }
-
-    }
-
-function configureRankingPlacement() {
-      const isLaboratoryModule =
+      const isLaboratory =
         (
           APP.module ===
             'ILIL' ||
@@ -4868,12 +5046,87 @@ function configureRankingPlacement() {
             'EVL'
         );
 
-      if (isLaboratoryModule) {
-        ELEMENTS.secondaryPanel.style.display =
+      mainGrid.classList.remove(
+        'clinical-layout',
+        'lab-layout'
+      );
+
+      /*
+       * Always keep the chart panel as the first child.
+       */
+      if (
+        chartPanel.parentElement !==
+          mainGrid
+      ) {
+        mainGrid.insertBefore(
+          chartPanel,
+          mainGrid.firstChild
+        );
+      }
+
+      if (isClinical) {
+        mainGrid.classList.add(
+          'clinical-layout'
+        );
+
+        secondaryPanel.style.display =
+          'none';
+
+        rankingPanel.style.display =
           '';
 
-        ELEMENTS.primaryRankingPanel.style.display =
+        /*
+         * Put the district ranking directly beside the trend.
+         */
+        if (
+          rankingPanel.parentElement !==
+            mainGrid
+        ) {
+          mainGrid.appendChild(
+            rankingPanel
+          );
+        }
+
+        ELEMENTS.rankingTitle =
+          ELEMENTS.primaryRankingTitle;
+
+        ELEMENTS.rankingContainer =
+          ELEMENTS.primaryRankingContainer;
+
+      } else if (isLaboratory) {
+        mainGrid.classList.add(
+          'lab-layout'
+        );
+
+        secondaryPanel.style.display =
+          '';
+
+        rankingPanel.style.display =
           'none';
+
+        /*
+         * Restore the laboratory sentinel panel beside the trend.
+         */
+        if (
+          secondaryPanel.parentElement !==
+            mainGrid
+        ) {
+          mainGrid.appendChild(
+            secondaryPanel
+          );
+        }
+
+        /*
+         * Keep the hidden clinical ranking panel outside the grid.
+         */
+        if (
+          rankingPanel.parentElement ===
+            mainGrid
+        ) {
+          content.appendChild(
+            rankingPanel
+          );
+        }
 
         ELEMENTS.rankingTitle =
           ELEMENTS.secondaryTitle;
@@ -4881,34 +5134,28 @@ function configureRankingPlacement() {
         ELEMENTS.rankingContainer =
           ELEMENTS.secondaryContainer;
 
-        const moduleTitleMap = {
-          ILIL:
-            'Sentinel ranking (ILI Lab)',
-
-          SARIL:
-            'Sentinel ranking (SARI Lab)',
-
-          EVL:
-            'Sentinel ranking (Enterovirus Lab)'
-        };
-
-        ELEMENTS.secondaryTitle.textContent =
-          moduleTitleMap[
-            APP.module
-          ];
-
-        ELEMENTS.secondarySubtitle.textContent =
-          'All respective sentinels ranked by positive samples';
-
-        ELEMENTS.secondaryContainer.innerHTML =
-          '';
-
       } else {
-        ELEMENTS.secondaryPanel.style.display =
+        /*
+         * Defensive fallback for any future module.
+         */
+        mainGrid.classList.add(
+          'lab-layout'
+        );
+
+        secondaryPanel.style.display =
           'none';
 
-        ELEMENTS.primaryRankingPanel.style.display =
+        rankingPanel.style.display =
           '';
+
+        if (
+          rankingPanel.parentElement ===
+            mainGrid
+        ) {
+          content.appendChild(
+            rankingPanel
+          );
+        }
 
         ELEMENTS.rankingTitle =
           ELEMENTS.primaryRankingTitle;
@@ -4918,6 +5165,10 @@ function configureRankingPlacement() {
       }
     }
 
+
+function configureRankingPlacement() {
+      return;
+    }
 
     function renderIntelligence() {
       return;
