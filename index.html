@@ -1082,6 +1082,30 @@
       display: none !important;
     }
 
+
+    #secondaryContainer .ranking-table {
+      font-size: 0.78rem;
+    }
+
+    #secondaryContainer .ranking-table th,
+    #secondaryContainer .ranking-table td {
+      padding: 10px 8px;
+    }
+
+    #secondaryContainer .ranking-summary {
+      padding: 10px 12px 0;
+    }
+
+    #secondaryContainer {
+      overflow-x: auto;
+    }
+
+    @media (min-width: 1101px) {
+      #secondaryContainer .ranking-table {
+        min-width: 640px;
+      }
+    }
+
   </style>
 </head>
 
@@ -1220,26 +1244,29 @@
           </div>
         </article>
 
-        <aside class="panel">
+        <aside
+          id="secondaryPanel"
+          class="panel"
+        >
           <div class="panel-header">
             <div>
-              <h3>Intelligence summary</h3>
-              <p>
-                Operational interpretation of the selected view
+              <h3 id="secondaryTitle">
+                Sentinel ranking
+              </h3>
+              <p id="secondarySubtitle">
+                Laboratory sentinels ranked by positive samples
               </p>
             </div>
           </div>
 
-          <div class="intelligence">
-            <div
-              id="intelligenceList"
-              class="intelligence-list"
-            ></div>
-          </div>
+          <div id="secondaryContainer"></div>
         </aside>
       </section>
 
-      <section class="panel">
+      <section
+        id="primaryRankingPanel"
+        class="panel"
+      >
         <div class="panel-header">
           <div>
             <h3 id="rankingTitle">Ranking</h3>
@@ -1408,7 +1435,11 @@
         'chartSubtitle',
         'viewTabs',
         'mainChart',
-        'intelligenceList',
+        'secondaryPanel',
+        'secondaryTitle',
+        'secondarySubtitle',
+        'secondaryContainer',
+        'primaryRankingPanel',
         'rankingTitle',
         'rankingContainer',
         'setupOverlay',
@@ -1420,6 +1451,12 @@
             document.getElementById(id);
         }
       );
+
+      ELEMENTS.primaryRankingTitle =
+        ELEMENTS.rankingTitle;
+
+      ELEMENTS.primaryRankingContainer =
+        ELEMENTS.rankingContainer;
     }
 
     function bindEvents() {
@@ -2042,6 +2079,7 @@
       renderKpis();
       renderViewTabs();
       renderMainChart();
+      configureRankingPlacement();
       if (
         typeof renderIntelligence === 'function' &&
         document.querySelector(
@@ -4421,6 +4459,68 @@
     }
 
 
+    function configureRankingPlacement() {
+      const isLaboratoryModule =
+        (
+          APP.module ===
+            'ILIL' ||
+          APP.module ===
+            'SARIL' ||
+          APP.module ===
+            'EVL'
+        );
+
+      if (isLaboratoryModule) {
+        ELEMENTS.secondaryPanel.style.display =
+          '';
+
+        ELEMENTS.primaryRankingPanel.style.display =
+          'none';
+
+        ELEMENTS.rankingTitle =
+          ELEMENTS.secondaryTitle;
+
+        ELEMENTS.rankingContainer =
+          ELEMENTS.secondaryContainer;
+
+        const moduleTitleMap = {
+          ILIL:
+            'Sentinel ranking (ILI Lab)',
+
+          SARIL:
+            'Sentinel ranking (SARI Lab)',
+
+          EVL:
+            'Sentinel ranking (Enterovirus Lab)'
+        };
+
+        ELEMENTS.secondaryTitle.textContent =
+          moduleTitleMap[
+            APP.module
+          ];
+
+        ELEMENTS.secondarySubtitle.textContent =
+          'All respective sentinels ranked by positive samples';
+
+        ELEMENTS.secondaryContainer.innerHTML =
+          '';
+
+      } else {
+        ELEMENTS.secondaryPanel.style.display =
+          'none';
+
+        ELEMENTS.primaryRankingPanel.style.display =
+          '';
+
+        ELEMENTS.rankingTitle =
+          ELEMENTS.primaryRankingTitle;
+
+        ELEMENTS.rankingContainer =
+          ELEMENTS.primaryRankingContainer;
+      }
+    }
+
+
     function renderIntelligence() {
       return;
     }
@@ -5221,9 +5321,26 @@
           APP.module
         ].label;
 
+      const rankingTitleMap = {
+        ILIL:
+          'Sentinel ranking (ILI Lab)',
+
+        SARIL:
+          'Sentinel ranking (SARI Lab)',
+
+        EVL:
+          'Sentinel ranking (Enterovirus Lab)'
+      };
+
       ELEMENTS.rankingTitle.textContent =
-        'Sentinel ranking — ' +
-        moduleLabel;
+        rankingTitleMap[
+          APP.module
+        ] ||
+        (
+          'Sentinel ranking (' +
+          moduleLabel +
+          ')'
+        );
 
       ELEMENTS.rankingContainer.innerHTML =
         '<div class="empty-state">' +
@@ -5271,9 +5388,17 @@
         }
 
         ELEMENTS.rankingTitle.textContent =
-          'Sentinel ranking (' +
-          moduleLabel +
-          ') — ' +
+          (
+            rankingTitleMap[
+              APP.module
+            ] ||
+            (
+              'Sentinel ranking (' +
+              moduleLabel +
+              ')'
+            )
+          ) +
+          ' — ' +
           (
             payload.period ||
             requestedPeriod ||
