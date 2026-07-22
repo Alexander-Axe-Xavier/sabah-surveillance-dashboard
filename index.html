@@ -2747,15 +2747,13 @@
           },
           {
             label:
-              isMonthly
-                ? 'Highest Monthly Samples Taken'
-                : 'Highest Weekly Samples Taken',
+              'Total Positive (Positivity Rate)',
 
             value:
               '…',
 
             foot:
-              'Loading historical maximum'
+              'Loading highest positive period'
           }
         ]
           .map(
@@ -2828,14 +2826,21 @@
               );
 
         const highestFoot =
-          payload.highestPeriod
+          payload.highestPositivePeriod
             ? (
                 selectedArea +
                 ' · ' +
-                payload.highestPeriod
+                payload.highestPositivePeriod +
+                ' · ' +
+                formatNumber(
+                  Math.round(
+                    payload.highestPositiveTested || 0
+                  )
+                ) +
+                ' tested'
               )
             : (
-                'No historical sample data for ' +
+                'No positive sample history for ' +
                 selectedArea
               );
 
@@ -2878,30 +2883,16 @@
           },
           {
             label:
-              isMonthly
-                ? (
-                    'Highest Monthly Samples Taken — ' +
-                    (
-                      payload.highestPeriod ||
-                      '—'
-                    )
-                  )
-                : (
-                    'Highest Weekly Samples Taken — ' +
-                    (
-                      payload.highestPeriod
-                        ? payload.highestPeriod.replace(
-                            /^\d{4}-W/,
-                            'W'
-                          )
-                        : '—'
-                    )
-                  ),
+              'Total Positive (' +
+              formatNumber(
+                payload.highestPositiveRate || 0
+              ) +
+              '%)',
 
             value:
               formatNumber(
                 Math.round(
-                  payload.highestSamples || 0
+                  payload.highestPositiveSamples || 0
                 )
               ),
 
