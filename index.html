@@ -2425,6 +2425,171 @@ select,button,.view-tab{background:rgba(255,255,255,.5)!important;border:1px sol
   }
 </style>
 
+
+<style id="laboratory-grouped-bar-chart">
+  .lab-grouped-axis-shell {
+    --lab-plot-height: 320px;
+    overflow: visible !important;
+  }
+
+  .lab-grouped-chart-shell {
+    position: relative;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding:
+      8px
+      0
+      4px
+      0;
+  }
+
+  .lab-grouped-chart {
+    display: grid;
+    gap: 12px;
+    align-items: end;
+    min-width: max-content;
+    height:
+      calc(
+        var(--lab-plot-height) +
+        28px
+      );
+    padding:
+      0
+      8px;
+  }
+
+  .lab-grouped-period {
+    display: grid;
+    grid-template-rows:
+      var(--lab-plot-height)
+      24px;
+    min-width: 44px;
+    height:
+      calc(
+        var(--lab-plot-height) +
+        24px
+      );
+  }
+
+  .lab-grouped-bars {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 4px;
+    height: var(--lab-plot-height);
+    min-height: var(--lab-plot-height);
+  }
+
+  .lab-grouped-bar-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    height: 100%;
+    min-width: 7px;
+  }
+
+  .lab-grouped-bar-track {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+
+  .lab-grouped-bar {
+    min-height: 0;
+    background:
+      var(
+        --series-color,
+        #2563EB
+      ) !important;
+    border:
+      1px solid
+      var(
+        --series-color,
+        #2563EB
+      ) !important;
+    border-radius:
+      5px
+      5px
+      1px
+      1px;
+    box-shadow: none !important;
+    transition:
+      transform 0.16s ease,
+      filter 0.16s ease;
+  }
+
+  .lab-grouped-bar:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.08);
+  }
+
+  .lab-grouped-value {
+    position: absolute;
+    bottom:
+      calc(
+        100% +
+        4px
+      );
+    transform: translateY(100%);
+    font-size: 0.58rem;
+    font-weight: 800;
+    line-height: 1;
+    color:
+      var(
+        --lg-text,
+        var(--text)
+      );
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .lab-grouped-axis-shell .chart-gridlines,
+  .lab-grouped-axis-shell .chart-y-ticks {
+    height: var(--lab-plot-height) !important;
+  }
+
+  .lab-grouped-axis-shell .chart-gridlines {
+    pointer-events: none;
+  }
+
+  .lab-grouped-axis-shell .chart-legend {
+    margin-top: 12px;
+  }
+
+  @media (max-width: 900px) {
+    .lab-grouped-axis-shell {
+      --lab-plot-height: 280px;
+    }
+
+    .lab-grouped-chart {
+      gap: 10px;
+    }
+
+    .lab-grouped-bars {
+      gap: 3px;
+    }
+
+    .lab-grouped-value {
+      font-size: 0.54rem;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .lab-grouped-axis-shell {
+      --lab-plot-height: 250px;
+    }
+
+    .lab-grouped-chart {
+      gap: 8px;
+    }
+  }
+</style>
+
 </head>
 
 <body>
@@ -4781,18 +4946,15 @@ select,button,.view-tab{background:rgba(255,255,255,.5)!important;border:1px sol
         );
       }
 
-      let maximumTotal = 0;
+      let maximumValue = 0;
 
       periods.forEach(
         function (period) {
-          const total =
-            series.reduce(
-              function (
-                sum,
-                item
-              ) {
-                return (
-                  sum +
+          series.forEach(
+            function (item) {
+              maximumValue =
+                Math.max(
+                  maximumValue,
                   Number(
                     item.values &&
                     item.values[
@@ -4804,21 +4966,14 @@ select,button,.view-tab{background:rgba(255,255,255,.5)!important;border:1px sol
                       : 0
                   )
                 );
-              },
-              0
-            );
-
-          maximumTotal =
-            Math.max(
-              maximumTotal,
-              total
-            );
+            }
+          );
         }
       );
 
       const axisMaximum =
         getNiceAxisMaximum(
-          maximumTotal
+          maximumValue
         );
 
       const ticks =
@@ -4842,46 +4997,28 @@ select,button,.view-tab{background:rgba(255,255,255,.5)!important;border:1px sol
           }
         );
 
-      const bars =
+      const barWidth =
+        Math.max(
+          5,
+          Math.min(
+            16,
+            Math.floor(
+              60 /
+              Math.max(
+                1,
+                series.length
+              )
+            )
+          )
+        );
+
+      const periodGroups =
         periods.map(
           function (
             period,
             periodIndex
           ) {
-            const total =
-              series.reduce(
-                function (
-                  sum,
-                  item
-                ) {
-                  return (
-                    sum +
-                    Number(
-                      item.values &&
-                      item.values[
-                        period
-                      ]
-                        ? item.values[
-                            period
-                          ]
-                        : 0
-                    )
-                  );
-                },
-                0
-              );
-
-            const stackHeight =
-              axisMaximum >
-                0
-                ? (
-                    total /
-                    axisMaximum
-                  ) *
-                  100
-                : 0;
-
-            const segments =
+            const bars =
               series.map(
                 function (
                   item,
@@ -4899,37 +5036,63 @@ select,button,.view-tab{background:rgba(255,255,255,.5)!important;border:1px sol
                         : 0
                     );
 
-                  const segmentHeight =
-                    total >
+                  const heightPercent =
+                    axisMaximum >
                       0
                       ? (
                           value /
-                          total
+                          axisMaximum
                         ) *
                         100
                       : 0;
 
                   return (
-                    '<div class="time-bar" ' +
-                      'style="height:' +
-                        segmentHeight.toFixed(
-                          3
-                        ) +
-                        '%;--series-color:' +
-                        seriesColours[
-                          index
-                        ] +
-                      '" title="' +
-                        escapeHtml(
-                          item.name +
-                          ' · ' +
-                          period +
-                          ' · Positive samples: ' +
-                          formatNumber(
-                            value
-                          )
-                        ) +
-                    '"></div>'
+                    '<div class="lab-grouped-bar-item">' +
+                      (
+                        value >
+                          0
+                          ? (
+                              '<div class="lab-grouped-value">' +
+                                escapeHtml(
+                                  formatNumber(
+                                    value
+                                  )
+                                ) +
+                              '</div>'
+                            )
+                          : ''
+                      ) +
+                      '<div class="lab-grouped-bar-track">' +
+                        '<div class="lab-grouped-bar" ' +
+                          'style="height:' +
+                            Math.max(
+                              0,
+                              Math.min(
+                                100,
+                                heightPercent
+                              )
+                            ).toFixed(
+                              2
+                            ) +
+                            '%;width:' +
+                            barWidth +
+                            'px;--series-color:' +
+                            seriesColours[
+                              index
+                            ] +
+                          '" title="' +
+                            escapeHtml(
+                              item.name +
+                              ' · ' +
+                              period +
+                              ' · Positive samples: ' +
+                              formatNumber(
+                                value
+                              )
+                            ) +
+                        '"></div>' +
+                      '</div>' +
+                    '</div>'
                   );
                 }
               )
@@ -4950,21 +5113,9 @@ select,button,.view-tab{background:rgba(255,255,255,.5)!important;border:1px sol
                 1;
 
             return (
-              '<div class="time-period-group">' +
-                '<div class="time-bars">' +
-                  '<div class="time-stack" style="height:' +
-                    Math.max(
-                      0,
-                      Math.min(
-                        100,
-                        stackHeight
-                      )
-                    ).toFixed(
-                      2
-                    ) +
-                  '%">' +
-                    segments +
-                  '</div>' +
+              '<div class="lab-grouped-period">' +
+                '<div class="lab-grouped-bars">' +
+                  bars +
                 '</div>' +
                 '<div class="time-period-label' +
                   (
@@ -5083,7 +5234,7 @@ select,button,.view-tab{background:rgba(255,255,255,.5)!important;border:1px sol
             '</p>' +
           '</div>' +
           '<div class="lab-trend-chart">' +
-            '<div class="chart-axis-shell">' +
+            '<div class="chart-axis-shell lab-grouped-axis-shell">' +
               '<div class="chart-y-axis-title">' +
                 escapeHtml(
                   options.yAxisTitle
@@ -5095,31 +5246,11 @@ select,button,.view-tab{background:rgba(255,255,255,.5)!important;border:1px sol
               '<div class="chart-gridlines">' +
                 gridlines +
               '</div>' +
-              '<div class="time-chart-shell">' +
-                '<div class="time-chart">' +
-                  '<div class="time-chart-plot" style="grid-template-columns:repeat(' +
-                    periods.length +
-                    ',minmax(0,1fr))">' +
-                    bars +
-                  '</div>' +
-                  '<div>' +
-                    '<div class="chart-legend">' +
-                      legend +
-                    '</div>' +
-                    (
-                      hiddenCount >
-                        0
-                        ? (
-                            '<div class="lab-series-note">' +
-                              escapeHtml(
-                                hiddenCount +
-                                ' lower-volume series are hidden to keep the chart readable.'
-                              ) +
-                            '</div>'
-                          )
-                        : ''
-                    ) +
-                  '</div>' +
+              '<div class="lab-grouped-chart-shell">' +
+                '<div class="lab-grouped-chart" style="grid-template-columns:repeat(' +
+                  periods.length +
+                  ',minmax(44px,1fr))">' +
+                  periodGroups +
                 '</div>' +
               '</div>' +
               '<div class="chart-x-axis-title">' +
@@ -5127,6 +5258,22 @@ select,button,.view-tab{background:rgba(255,255,255,.5)!important;border:1px sol
                   options.xAxisTitle
                 ) +
               '</div>' +
+              '<div class="chart-legend">' +
+                legend +
+              '</div>' +
+              (
+                hiddenCount >
+                  0
+                  ? (
+                      '<div class="lab-series-note">' +
+                        escapeHtml(
+                          hiddenCount +
+                          ' lower-volume series are hidden to keep the chart readable.'
+                        ) +
+                      '</div>'
+                    )
+                  : ''
+              ) +
             '</div>' +
           '</div>' +
         '</section>'
