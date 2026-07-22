@@ -1027,9 +1027,10 @@
 
     .lab-trend-grid {
       display: grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 18px;
       width: 100%;
+      align-items: start;
     }
 
     .lab-trend-panel {
@@ -1063,6 +1064,22 @@
       padding: 6px 16px 12px;
       color: var(--muted);
       font-size: 0.72rem;
+    }
+
+
+    @media (max-width: 1100px) {
+      .lab-trend-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+
+    #intelligenceSection,
+    #intelligenceSummary,
+    .intelligence-section,
+    .intelligence-summary,
+    [data-section="intelligence"] {
+      display: none !important;
     }
 
   </style>
@@ -2025,7 +2042,14 @@
       renderKpis();
       renderViewTabs();
       renderMainChart();
-      renderIntelligence();
+      if (
+        typeof renderIntelligence === 'function' &&
+        document.querySelector(
+          '#intelligenceSection, #intelligenceSummary, .intelligence-section, .intelligence-summary, [data-section="intelligence"]'
+        )
+      ) {
+        renderIntelligence();
+      }
       renderRanking();
     }
 
@@ -4398,152 +4422,7 @@
 
 
     function renderIntelligence() {
-      const records =
-        getCurrentRecords();
-
-      const latest =
-        getCurrentOrLatestValidPeriod(
-          records
-        );
-
-      const latestRecords =
-        latest
-          ? records.filter(
-              function (record) {
-                return record.Period_Key === latest;
-              }
-            )
-          : records;
-
-      const values =
-        latestRecords
-          .map(
-            function (record) {
-              return Number(
-                record.Numeric_Value
-              );
-            }
-          )
-          .filter(
-            function (value) {
-              return Number.isFinite(value);
-            }
-          );
-
-      const total =
-        values.reduce(
-          function (sum, value) {
-            return sum + value;
-          },
-          0
-        );
-
-      const highestRecord =
-        latestRecords
-          .slice()
-          .sort(
-            function (left, right) {
-              return (
-                Number(
-                  right.Numeric_Value || 0
-                ) -
-                Number(
-                  left.Numeric_Value || 0
-                )
-              );
-            }
-          )[0];
-
-      const statusCounts = {};
-
-      latestRecords.forEach(
-        function (record) {
-          const status =
-            record.Status || 'AVAILABLE';
-
-          statusCounts[status] =
-            Number(
-              statusCounts[status] || 0
-            ) + 1;
-        }
-      );
-
-      const insights = [
-        {
-          title: 'Current selection',
-          text:
-            MODULE_CONFIG[APP.module].label +
-            ' · ' +
-            getCurrentAnalysisConfig().label
-        },
-        {
-          title: 'Latest available period',
-          text:
-            latest ||
-            'No period available'
-        },
-        {
-          title: 'Latest aggregated value',
-          text:
-            formatNumber(total)
-        },
-        {
-          title: 'Highest category',
-          text:
-            highestRecord
-              ? (
-                  highestRecord.Category ||
-                  highestRecord.Facility_ID ||
-                  highestRecord.District_Code ||
-                  highestRecord.Period_Key
-                ) +
-                ' — ' +
-                formatNumber(
-                  highestRecord.Numeric_Value
-                )
-              : 'No value available'
-        },
-        {
-          title: 'Status profile',
-          text:
-            Object.keys(statusCounts)
-              .map(
-                function (status) {
-                  return (
-                    status +
-                    ': ' +
-                    statusCounts[status]
-                  );
-                }
-              )
-              .join(' · ') ||
-            'No status information'
-        }
-      ];
-
-      ELEMENTS.intelligenceList.innerHTML = '';
-
-      insights.forEach(
-        function (insight) {
-          const element =
-            document.createElement('div');
-
-          element.className =
-            'insight';
-
-          element.innerHTML =
-            '<strong>' +
-            escapeHtml(insight.title) +
-            '</strong>' +
-            '<span>' +
-            escapeHtml(insight.text) +
-            '</span>';
-
-          ELEMENTS.intelligenceList.appendChild(
-            element
-          );
-        }
-      );
+      return;
     }
 
     function renderRanking() {
