@@ -2671,6 +2671,46 @@ select,button,.view-tab{background:rgba(255,255,255,.5)!important;border:1px sol
   }
 </style>
 
+
+<style id="surveillance-narrative-panel">
+  .narrative-panel {
+    width: 100%;
+    max-width: 100%;
+    margin-top: 18px;
+  }
+
+  .narrative-container {
+    padding: 20px 22px 24px;
+  }
+
+  .narrative-container p {
+    margin: 0;
+    max-width: 1180px;
+    font-size: 0.96rem;
+    line-height: 1.75;
+    color:
+      var(
+        --lg-text,
+        var(--text)
+      );
+  }
+
+  @media (max-width: 700px) {
+    .narrative-panel {
+      margin-top: 12px;
+    }
+
+    .narrative-container {
+      padding: 17px 16px 20px;
+    }
+
+    .narrative-container p {
+      font-size: 0.90rem;
+      line-height: 1.65;
+    }
+  }
+</style>
+
 </head>
 
 <body>
@@ -2842,6 +2882,30 @@ select,button,.view-tab{background:rgba(255,255,255,.5)!important;border:1px sol
 
         <div id="rankingContainer"></div>
       </section>
+
+      <section
+        id="narrativePanel"
+        class="panel narrative-panel"
+      >
+        <div class="panel-header">
+          <div>
+            <h3 id="narrativeTitle">
+              Weekly Surveillance Summary
+            </h3>
+            <p>
+              Current situation, comparison with the previous period,
+              and highest contributor
+            </p>
+          </div>
+        </div>
+
+        <div
+          id="narrativeContainer"
+          class="narrative-container"
+        >
+          <p>Loading surveillance summary…</p>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -2860,7 +2924,8 @@ select,button,.view-tab{background:rgba(255,255,255,.5)!important;border:1px sol
       autoRefreshTimer: null,
       rankingRequestId: 0,
       labKpiRequestId: 0,
-      labTrendRequestId: 0
+      labTrendRequestId: 0,
+      narrativeRequestId: 0
     };
 
     const MODULE_CONFIG = {
@@ -3006,6 +3071,9 @@ select,button,.view-tab{background:rgba(255,255,255,.5)!important;border:1px sol
         'primaryRankingPanel',
         'rankingTitle',
         'rankingContainer',
+        'narrativePanel',
+        'narrativeTitle',
+        'narrativeContainer',
         'setupOverlay',
         'apiUrlInput',
         'saveApiButton'
@@ -3653,7 +3721,792 @@ select,button,.view-tab{background:rgba(255,255,255,.5)!important;border:1px sol
         renderIntelligence();
       }
       renderRanking();
+      renderSurveillanceNarrative();
     }
+
+    async function renderSurveillanceNarrative() {
+      const requestId =
+        ++APP.narrativeRequestId;
+
+      const isLaboratory =
+        (
+          APP.module ===
+            'ILIL' ||
+          APP.module ===
+            'SARIL' ||
+          APP.module ===
+            'EVL'
+        );
+
+      ELEMENTS.narrativeTitle.textContent =
+        isLaboratory
+          ? (
+              APP.module === 'EVL'
+                ? 'Monthly Laboratory Summary'
+                : 'Weekly Laboratory Summary'
+            )
+          : 'Weekly Surveillance Summary';
+
+      ELEMENTS.narrativeContainer.innerHTML =
+        '<p>Generating surveillance summary…</p>';
+
+      try {
+        const paragraph =
+          isLaboratory
+            ? await buildLaboratoryNarrative()
+            : await buildClinicalNarrative();
+
+        if (
+          requestId !==
+          APP.narrativeRequestId
+        ) {
+          return;
+        }
+
+        ELEMENTS.narrativeContainer.innerHTML =
+          '<p>' +
+            escapeHtml(
+              paragraph
+            ) +
+          '</p>';
+
+      } catch (error) {
+        if (
+          requestId !==
+          APP.narrativeRequestId
+        ) {
+          return;
+        }
+
+        ELEMENTS.narrativeContainer.innerHTML =
+          '<p>Unable to generate the surveillance summary for the selected view.</p>';
+      }
+    }
+
+
+    async function buildClinicalNarrative() {
+      const moduleNames = {
+        ILIC:
+          'Influenza-like Illness (ILI)',
+
+        SARIC:
+          'Severe Acute Respiratory Infection (SARI)',
+
+        AGEC:
+          'Acute Gastroenteritis (AGE)'
+      };
+
+      const rankingApis = {
+        ILIC:
+          'ili-ranking',
+
+        SARIC:
+          'sari-ranking',
+
+        AGEC:
+          'age-ranking'
+      };
+
+      const records =
+        getCurrentRecords()
+          .filter(
+            function (record) {
+              return (
+                !isFuturePeriod(
+                  record.Period_Key
+                )
+              );
+            }
+          );
+
+      const totals =
+        aggregateNarrativePeriodTotals(
+          records
+        );
+
+      const periods =
+        Object.keys(
+          totals
+        )
+          .filter(
+            function (period) {
+              return (
+                totals[
+                  period
+                ] >
+                0
+              );
+            }
+          )
+          .sort();
+
+      const currentPeriod =
+        periods.length
+          ? periods[
+              periods.length - 1
+            ]
+          : (
+              getAuthoritativeCurrentPeriod() ||
+              'Current period'
+            );
+
+      const previousPeriod =
+        getPreviousNarrativePeriod(
+          currentPeriod,
+          'WEEKLY'
+        );
+
+      const currentTotal =
+        Number(
+          totals[
+            currentPeriod
+          ] || 0
+        );
+
+      const previousTotal =
+        Number(
+          totals[
+            previousPeriod
+          ] || 0
+        );
+
+      const comparison =
+        describeNarrativeChange(
+          currentTotal,
+          previousTotal
+        );
+
+      const rankingPayload =
+        await apiRequest({
+          api:
+            rankingApis[
+              APP.module
+            ],
+
+          period:
+            currentPeriod,
+
+          limit:
+            5
+        });
+
+      const ranking =
+        rankingPayload.ranking || [];
+
+      const highest =
+        ranking.length
+          ? ranking[0]
+          : null;
+
+      const highestName =
+        highest
+          ? (
+              highest.districtName ||
+              highest.districtCode ||
+              'an unidentified district'
+            )
+          : 'no single district';
+
+      const highestCases =
+        highest
+          ? Number(
+              highest.cases || 0
+            )
+          : 0;
+
+      const scopeName =
+        APP.facility
+          ? (
+              ELEMENTS.facilitySelect.options[
+                ELEMENTS.facilitySelect.selectedIndex
+              ].text ||
+              APP.facility
+            )
+          : APP.district
+            ? (
+                ELEMENTS.districtSelect.options[
+                  ELEMENTS.districtSelect.selectedIndex
+                ].text ||
+                APP.district
+              )
+            : 'Sabah';
+
+      return (
+        'During ' +
+        formatNarrativePeriod(
+          currentPeriod
+        ) +
+        ', ' +
+        scopeName +
+        ' recorded ' +
+        formatNumber(
+          currentTotal
+        ) +
+        ' ' +
+        moduleNames[
+          APP.module
+        ] +
+        ' case' +
+        (
+          currentTotal === 1
+            ? ''
+            : 's'
+        ) +
+        '. ' +
+        comparison +
+        ' ' +
+        (
+          highest
+            ? (
+                highestName +
+                ' was the highest contributing district with ' +
+                formatNumber(
+                  highestCases
+                ) +
+                ' case' +
+                (
+                  highestCases === 1
+                    ? ''
+                    : 's'
+                ) +
+                ' during the reporting period.'
+              )
+            : (
+                'No contributing district could be identified for the reporting period.'
+              )
+        )
+      );
+    }
+
+
+    async function buildLaboratoryNarrative() {
+      const isMonthly =
+        APP.module ===
+          'EVL';
+
+      const positivitySectionMap = {
+        ILIL:
+          'ILIL_POSITIVITY',
+
+        SARIL:
+          'SARIL_POSITIVITY',
+
+        EVL:
+          'EVL_POSITIVITY'
+      };
+
+      const sectionRecords =
+        (
+          APP.moduleData.sections[
+            positivitySectionMap[
+              APP.module
+            ]
+          ] || []
+        ).filter(
+          function (record) {
+            return (
+              !isFuturePeriod(
+                record.Period_Key
+              )
+            );
+          }
+        );
+
+      const testedTotals =
+        aggregateNarrativeMetricTotals(
+          sectionRecords,
+          'TESTED_SAMPLES'
+        );
+
+      const positiveTotals =
+        aggregateNarrativeMetricTotals(
+          sectionRecords,
+          'POSITIVE_SAMPLES'
+        );
+
+      const availablePeriods =
+        Array.from(
+          new Set(
+            Object.keys(
+              testedTotals
+            ).concat(
+              Object.keys(
+                positiveTotals
+              )
+            )
+          )
+        )
+          .filter(
+            function (period) {
+              return (
+                Number(
+                  testedTotals[
+                    period
+                  ] || 0
+                ) >
+                  0 ||
+                Number(
+                  positiveTotals[
+                    period
+                  ] || 0
+                ) >
+                  0
+              );
+            }
+          )
+          .sort();
+
+      const currentPeriod =
+        availablePeriods.length
+          ? availablePeriods[
+              availablePeriods.length - 1
+            ]
+          : (
+              getAuthoritativeCurrentPeriod() ||
+              'Current period'
+            );
+
+      const previousPeriod =
+        getPreviousNarrativePeriod(
+          currentPeriod,
+          isMonthly
+            ? 'MONTHLY'
+            : 'WEEKLY'
+        );
+
+      const currentTested =
+        Number(
+          testedTotals[
+            currentPeriod
+          ] || 0
+        );
+
+      const previousTested =
+        Number(
+          testedTotals[
+            previousPeriod
+          ] || 0
+        );
+
+      const currentPositive =
+        Number(
+          positiveTotals[
+            currentPeriod
+          ] || 0
+        );
+
+      const comparison =
+        describeNarrativeChange(
+          currentTested,
+          previousTested,
+          'laboratory sampling'
+        );
+
+      const trendPayload =
+        await apiRequest({
+          api:
+            'lab-positive-trend',
+
+          module:
+            APP.module,
+
+          district:
+            APP.district,
+
+          facility:
+            APP.facility
+        });
+
+      const sentinelSeries =
+        trendPayload.sentinelSeries || [];
+
+      let highestSentinel =
+        null;
+      let highestPositive =
+        0;
+
+      sentinelSeries.forEach(
+        function (item) {
+          const value =
+            Number(
+              item.values &&
+              item.values[
+                currentPeriod
+              ]
+                ? item.values[
+                    currentPeriod
+                  ]
+                : 0
+            );
+
+          if (
+            !highestSentinel ||
+            value >
+              highestPositive
+          ) {
+            highestSentinel =
+              item;
+
+            highestPositive =
+              value;
+          }
+        }
+      );
+
+      const scopeName =
+        APP.facility
+          ? (
+              ELEMENTS.facilitySelect.options[
+                ELEMENTS.facilitySelect.selectedIndex
+              ].text ||
+              APP.facility
+            )
+          : APP.district
+            ? (
+                ELEMENTS.districtSelect.options[
+                  ELEMENTS.districtSelect.selectedIndex
+                ].text ||
+                APP.district
+              )
+            : 'Sabah';
+
+      return (
+        'During ' +
+        formatNarrativePeriod(
+          currentPeriod
+        ) +
+        ', ' +
+        scopeName +
+        ' recorded ' +
+        formatNumber(
+          currentTested
+        ) +
+        ' specimen' +
+        (
+          currentTested === 1
+            ? ''
+            : 's'
+        ) +
+        ' tested, with ' +
+        formatNumber(
+          currentPositive
+        ) +
+        ' positive sample' +
+        (
+          currentPositive === 1
+            ? ''
+            : 's'
+        ) +
+        '. ' +
+        comparison +
+        ' ' +
+        (
+          highestSentinel &&
+          highestPositive >
+            0
+            ? (
+                highestSentinel.name +
+                ' was the highest contributing sentinel with ' +
+                formatNumber(
+                  highestPositive
+                ) +
+                ' positive sample' +
+                (
+                  highestPositive === 1
+                    ? ''
+                    : 's'
+                ) +
+                ' during the reporting period.'
+              )
+            : (
+                'No sentinel recorded a positive sample during the reporting period.'
+              )
+        )
+      );
+    }
+
+
+    function aggregateNarrativePeriodTotals(
+      records
+    ) {
+      const totals = {};
+
+      records.forEach(
+        function (record) {
+          const period =
+            record.Period_Key || '';
+
+          if (
+            !period ||
+            period ===
+              'CURRENT'
+          ) {
+            return;
+          }
+
+          totals[
+            period
+          ] =
+            Number(
+              totals[
+                period
+              ] || 0
+            ) +
+            Number(
+              record.Numeric_Value || 0
+            );
+        }
+      );
+
+      return totals;
+    }
+
+
+    function aggregateNarrativeMetricTotals(
+      records,
+      metric
+    ) {
+      return aggregateNarrativePeriodTotals(
+        records.filter(
+          function (record) {
+            return (
+              record.Metric ===
+                metric
+            );
+          }
+        )
+      );
+    }
+
+
+    function getPreviousNarrativePeriod(
+      period,
+      periodType
+    ) {
+      if (
+        periodType ===
+          'MONTHLY'
+      ) {
+        const match =
+          String(
+            period || ''
+          ).match(
+            /^(\d{4})-(\d{2})$/
+          );
+
+        if (!match) {
+          return '';
+        }
+
+        let year =
+          Number(
+            match[1]
+          );
+
+        let month =
+          Number(
+            match[2]
+          ) -
+          1;
+
+        if (
+          month < 1
+        ) {
+          month = 12;
+          year--;
+        }
+
+        return (
+          year +
+          '-' +
+          String(
+            month
+          ).padStart(
+            2,
+            '0'
+          )
+        );
+      }
+
+      const match =
+        String(
+          period || ''
+        ).match(
+          /^(\d{4})-W(\d{2})$/
+        );
+
+      if (!match) {
+        return '';
+      }
+
+      let year =
+        Number(
+          match[1]
+        );
+
+      let week =
+        Number(
+          match[2]
+        ) -
+          1;
+
+      if (
+        week < 1
+      ) {
+        week = 52;
+        year--;
+      }
+
+      return (
+        year +
+        '-W' +
+        String(
+          week
+        ).padStart(
+          2,
+          '0'
+        )
+      );
+    }
+
+
+    function describeNarrativeChange(
+      currentValue,
+      previousValue,
+      subject
+    ) {
+      const label =
+        subject ||
+        'case notifications';
+
+      if (
+        previousValue >
+          0
+      ) {
+        const change =
+          (
+            (
+              currentValue -
+              previousValue
+            ) /
+            previousValue
+          ) *
+          100;
+
+        if (
+          Math.abs(
+            change
+          ) <
+            0.05
+        ) {
+          return (
+            'Compared with the previous period, ' +
+            label +
+            ' remained unchanged.'
+          );
+        }
+
+        return (
+          'Compared with the previous period, ' +
+          label +
+          ' ' +
+          (
+            change >
+              0
+              ? 'increased'
+              : 'decreased'
+          ) +
+          ' by ' +
+          formatNumber(
+            Math.abs(
+              Math.round(
+                change *
+                10
+              ) /
+              10
+            )
+          ) +
+          '%.'
+        );
+      }
+
+      if (
+        currentValue >
+          0
+      ) {
+        return (
+          'No comparable activity was recorded in the previous period.'
+        );
+      }
+
+      return (
+        'No activity was recorded in either the current or previous period.'
+      );
+    }
+
+
+    function formatNarrativePeriod(
+      period
+    ) {
+      const weekly =
+        String(
+          period || ''
+        ).match(
+          /^(\d{4})-W(\d{2})$/
+        );
+
+      if (weekly) {
+        return (
+          'Epidemiological Week ' +
+          Number(
+            weekly[2]
+          ) +
+          ' of ' +
+          weekly[1]
+        );
+      }
+
+      const monthly =
+        String(
+          period || ''
+        ).match(
+          /^(\d{4})-(\d{2})$/
+        );
+
+      if (monthly) {
+        const monthNames = [
+          'January',
+          'February',
+          'March',
+          'April',
+          'May',
+          'June',
+          'July',
+          'August',
+          'September',
+          'October',
+          'November',
+          'December'
+        ];
+
+        return (
+          monthNames[
+            Number(
+              monthly[2]
+            ) -
+            1
+          ] +
+          ' ' +
+          monthly[1]
+        );
+      }
+
+      return (
+        period ||
+        'the current reporting period'
+      );
+    }
+
 
     function getCurrentAnalysisConfig() {
       const config =
