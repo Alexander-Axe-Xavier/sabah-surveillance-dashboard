@@ -1601,6 +1601,593 @@ select,button,.view-tab{background:rgba(255,255,255,.5)!important;border:1px sol
 @media(max-width:900px){.topbar,.filters,.kpi-card,.panel{border-radius:22px!important}.module-tab,select,button,.view-tab{border-radius:14px!important}}
 @media(max-width:600px){.topbar,.filters,.kpi-card,.panel{-webkit-backdrop-filter:blur(18px) saturate(150%);backdrop-filter:blur(18px) saturate(150%)}}
 </style>
+
+<style id="liquid-glass-90-theme">
+  :root {
+    --lg-panel: rgba(255, 255, 255, 0.12);
+    --lg-panel-strong: rgba(255, 255, 255, 0.18);
+    --lg-panel-soft: rgba(255, 255, 255, 0.08);
+    --lg-border: rgba(255, 255, 255, 0.30);
+    --lg-border-soft: rgba(255, 255, 255, 0.16);
+    --lg-highlight: rgba(255, 255, 255, 0.54);
+    --lg-shadow:
+      0 24px 70px rgba(37, 64, 99, 0.10),
+      0 8px 24px rgba(37, 64, 99, 0.07);
+    --lg-inner:
+      inset 0 1px 0 rgba(255, 255, 255, 0.52),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+    --lg-blue: #0a84ff;
+    --lg-blue-2: #5ac8fa;
+    --lg-cyan: #64d2ff;
+    --lg-purple: #bf5af2;
+    --lg-green: #30d158;
+    --lg-orange: #ff9f0a;
+    --lg-text: #0b1422;
+    --lg-muted: rgba(30, 45, 66, 0.62);
+  }
+
+  html {
+    min-height: 100%;
+    background:
+      radial-gradient(
+        circle at 8% 12%,
+        rgba(90, 200, 250, 0.62),
+        transparent 26%
+      ),
+      radial-gradient(
+        circle at 84% 10%,
+        rgba(191, 90, 242, 0.34),
+        transparent 25%
+      ),
+      radial-gradient(
+        circle at 70% 86%,
+        rgba(48, 209, 88, 0.24),
+        transparent 26%
+      ),
+      radial-gradient(
+        circle at 26% 82%,
+        rgba(10, 132, 255, 0.24),
+        transparent 28%
+      ),
+      linear-gradient(
+        145deg,
+        #eaf7ff 0%,
+        #f6f7fb 44%,
+        #eef3fb 100%
+      ) !important;
+    background-attachment: fixed !important;
+  }
+
+  body {
+    position: relative;
+    isolation: isolate;
+    overflow-x: hidden;
+    background: transparent !important;
+    color: var(--lg-text) !important;
+  }
+
+  body::before,
+  body::after {
+    content: '';
+    position: fixed;
+    z-index: -2;
+    border-radius: 999px;
+    filter: blur(42px);
+    pointer-events: none;
+    opacity: 0.88;
+  }
+
+  body::before {
+    width: 430px;
+    height: 430px;
+    left: -150px;
+    top: 110px;
+    background:
+      radial-gradient(
+        circle,
+        rgba(10, 132, 255, 0.34),
+        rgba(90, 200, 250, 0.08) 62%,
+        transparent 72%
+      );
+  }
+
+  body::after {
+    width: 390px;
+    height: 390px;
+    right: -120px;
+    bottom: -70px;
+    background:
+      radial-gradient(
+        circle,
+        rgba(191, 90, 242, 0.22),
+        rgba(48, 209, 88, 0.08) 62%,
+        transparent 72%
+      );
+  }
+
+  .topbar,
+  .filters,
+  .kpi-card,
+  .panel,
+  .module-tab,
+  select,
+  button,
+  .view-tab,
+  .ranking-period-chip,
+  .change-badge,
+  .lab-trend-panel {
+    -webkit-backdrop-filter:
+      blur(46px)
+      saturate(220%)
+      brightness(1.12);
+    backdrop-filter:
+      blur(46px)
+      saturate(220%)
+      brightness(1.12);
+  }
+
+  .topbar {
+    position: relative;
+    overflow: hidden;
+    background:
+      linear-gradient(
+        135deg,
+        rgba(8, 65, 108, 0.28),
+        rgba(21, 103, 154, 0.20)
+      ) !important;
+    border: 1px solid rgba(255, 255, 255, 0.34) !important;
+    box-shadow:
+      0 22px 58px rgba(11, 44, 76, 0.16),
+      inset 0 1px 0 rgba(255, 255, 255, 0.42),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.08) !important;
+    border-radius: 34px !important;
+  }
+
+  .topbar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(
+        115deg,
+        rgba(255, 255, 255, 0.32),
+        transparent 28%,
+        transparent 72%,
+        rgba(255, 255, 255, 0.08)
+      );
+  }
+
+  .topbar,
+  .topbar * {
+    color: #ffffff !important;
+    text-shadow: 0 1px 18px rgba(4, 35, 65, 0.24);
+  }
+
+  .filters,
+  .kpi-card,
+  .panel {
+    position: relative;
+    overflow: hidden;
+    background:
+      linear-gradient(
+        145deg,
+        rgba(255, 255, 255, 0.18),
+        rgba(255, 255, 255, 0.07)
+      ) !important;
+    border: 1px solid var(--lg-border) !important;
+    box-shadow:
+      var(--lg-shadow),
+      var(--lg-inner) !important;
+    border-radius: 32px !important;
+  }
+
+  .filters::before,
+  .kpi-card::before,
+  .panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(
+        120deg,
+        rgba(255, 255, 255, 0.36),
+        transparent 34%,
+        transparent 70%,
+        rgba(255, 255, 255, 0.08)
+      );
+    opacity: 0.88;
+  }
+
+  .filters > *,
+  .kpi-card > *,
+  .panel > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .module-tabs {
+    padding: 6px;
+    border-radius: 24px;
+    background:
+      linear-gradient(
+        145deg,
+        rgba(255, 255, 255, 0.13),
+        rgba(255, 255, 255, 0.06)
+      );
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    box-shadow:
+      0 16px 40px rgba(32, 58, 88, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.34);
+    -webkit-backdrop-filter:
+      blur(40px)
+      saturate(210%);
+    backdrop-filter:
+      blur(40px)
+      saturate(210%);
+  }
+
+  .module-tab {
+    position: relative;
+    overflow: hidden;
+    background:
+      linear-gradient(
+        145deg,
+        rgba(255, 255, 255, 0.16),
+        rgba(255, 255, 255, 0.07)
+      ) !important;
+    border: 1px solid rgba(255, 255, 255, 0.24) !important;
+    color: var(--lg-text) !important;
+    box-shadow:
+      0 10px 24px rgba(36, 64, 94, 0.07),
+      inset 0 1px 0 rgba(255, 255, 255, 0.34) !important;
+    border-radius: 20px !important;
+    transition:
+      transform 0.18s ease,
+      box-shadow 0.18s ease,
+      background 0.18s ease;
+  }
+
+  .module-tab:hover {
+    transform: translateY(-1px) scale(1.005);
+    background:
+      linear-gradient(
+        145deg,
+        rgba(255, 255, 255, 0.25),
+        rgba(255, 255, 255, 0.10)
+      ) !important;
+  }
+
+  .module-tab.active {
+    background:
+      linear-gradient(
+        145deg,
+        rgba(10, 132, 255, 0.52),
+        rgba(90, 200, 250, 0.24)
+      ) !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.40) !important;
+    box-shadow:
+      0 16px 32px rgba(10, 132, 255, 0.20),
+      inset 0 1px 0 rgba(255, 255, 255, 0.46),
+      inset 0 -1px 0 rgba(0, 68, 160, 0.12) !important;
+  }
+
+  select,
+  button,
+  .view-tab {
+    background:
+      linear-gradient(
+        145deg,
+        rgba(255, 255, 255, 0.15),
+        rgba(255, 255, 255, 0.06)
+      ) !important;
+    border: 1px solid rgba(255, 255, 255, 0.26) !important;
+    box-shadow:
+      0 10px 24px rgba(43, 72, 105, 0.07),
+      inset 0 1px 0 rgba(255, 255, 255, 0.36) !important;
+    border-radius: 18px !important;
+    color: var(--lg-text) !important;
+  }
+
+  select:hover,
+  button:hover,
+  .view-tab:hover {
+    background:
+      linear-gradient(
+        145deg,
+        rgba(255, 255, 255, 0.24),
+        rgba(255, 255, 255, 0.10)
+      ) !important;
+  }
+
+  .view-tab.active,
+  .clear-button,
+  .primary-button {
+    background:
+      linear-gradient(
+        145deg,
+        rgba(10, 132, 255, 0.58),
+        rgba(90, 200, 250, 0.26)
+      ) !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.38) !important;
+    box-shadow:
+      0 14px 30px rgba(10, 132, 255, 0.20),
+      inset 0 1px 0 rgba(255, 255, 255, 0.42) !important;
+  }
+
+  .kpi-card {
+    min-height: 118px;
+  }
+
+  .kpi-card::after {
+    content: '';
+    position: absolute;
+    width: 170px;
+    height: 85px;
+    right: -44px;
+    top: -34px;
+    border-radius: 999px;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        circle,
+        rgba(255, 255, 255, 0.34),
+        transparent 68%
+      );
+    filter: blur(7px);
+  }
+
+  .kpi-value {
+    letter-spacing: -0.045em;
+    text-shadow:
+      0 2px 22px rgba(255, 255, 255, 0.42),
+      0 1px 2px rgba(34, 56, 81, 0.08);
+  }
+
+  .kpi-label,
+  .field-label,
+  .panel-header p,
+  .kpi-foot,
+  .ranking-summary-text,
+  .district-code,
+  .lab-series-note {
+    color: var(--lg-muted) !important;
+  }
+
+  .kpi-value,
+  .panel-header h3,
+  .district-name,
+  .case-value,
+  .rate-value {
+    color: var(--lg-text) !important;
+  }
+
+  .panel-header {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.08),
+        rgba(255, 255, 255, 0.02)
+      ) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14) !important;
+  }
+
+  .ranking-table thead {
+    background: rgba(255, 255, 255, 0.10) !important;
+  }
+
+  .ranking-table th,
+  .ranking-table td {
+    border-bottom-color: rgba(77, 99, 123, 0.10) !important;
+  }
+
+  .ranking-table tbody tr {
+    transition:
+      background 0.16s ease,
+      transform 0.16s ease;
+  }
+
+  .ranking-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.12) !important;
+  }
+
+  .case-bar-track {
+    background: rgba(112, 137, 165, 0.14) !important;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow:
+      inset 0 1px 4px rgba(24, 45, 69, 0.07),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+  }
+
+  .case-bar-fill,
+  .time-bar {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(100, 210, 255, 0.96),
+        rgba(10, 132, 255, 0.82)
+      ) !important;
+    box-shadow:
+      0 8px 16px rgba(10, 132, 255, 0.16),
+      inset 0 1px 0 rgba(255, 255, 255, 0.48) !important;
+    border-radius: 999px 999px 4px 4px;
+  }
+
+  .chart-gridline {
+    border-top-color: rgba(72, 96, 122, 0.10) !important;
+  }
+
+  .ranking-period-chip {
+    background: rgba(255, 255, 255, 0.10) !important;
+    border-color: rgba(255, 255, 255, 0.22) !important;
+    color: var(--lg-text) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.24);
+  }
+
+  .change-badge {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  }
+
+  .change-badge.increase {
+    background: rgba(255, 69, 58, 0.10) !important;
+    border-color: rgba(255, 69, 58, 0.18) !important;
+  }
+
+  .change-badge.decrease {
+    background: rgba(48, 209, 88, 0.10) !important;
+    border-color: rgba(48, 209, 88, 0.18) !important;
+  }
+
+  .change-badge.new-activity {
+    background: rgba(255, 159, 10, 0.10) !important;
+    border-color: rgba(255, 159, 10, 0.18) !important;
+  }
+
+  .lab-trend-panel {
+    position: relative;
+    overflow: hidden;
+    background:
+      linear-gradient(
+        145deg,
+        rgba(255, 255, 255, 0.14),
+        rgba(255, 255, 255, 0.05)
+      ) !important;
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
+    box-shadow:
+      0 18px 44px rgba(31, 58, 88, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.30) !important;
+    border-radius: 26px !important;
+  }
+
+  .lab-trend-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(
+        125deg,
+        rgba(255, 255, 255, 0.24),
+        transparent 30%,
+        transparent 70%
+      );
+  }
+
+  .lab-trend-panel > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .lab-trend-chart {
+    background: transparent !important;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(72, 99, 132, 0.18);
+    border: 2px solid rgba(255, 255, 255, 0.20);
+    border-radius: 999px;
+  }
+
+  @supports not (
+    (-webkit-backdrop-filter: blur(1px)) or
+    (backdrop-filter: blur(1px))
+  ) {
+    .filters,
+    .kpi-card,
+    .panel,
+    .module-tab,
+    select,
+    button,
+    .view-tab,
+    .lab-trend-panel {
+      background: rgba(255, 255, 255, 0.88) !important;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .topbar,
+    .filters,
+    .kpi-card,
+    .panel {
+      border-radius: 26px !important;
+    }
+
+    .module-tab,
+    select,
+    button,
+    .view-tab {
+      border-radius: 16px !important;
+    }
+
+    .topbar,
+    .filters,
+    .kpi-card,
+    .panel,
+    .module-tab,
+    select,
+    button,
+    .view-tab,
+    .ranking-period-chip,
+    .lab-trend-panel {
+      -webkit-backdrop-filter:
+        blur(36px)
+        saturate(205%)
+        brightness(1.08);
+      backdrop-filter:
+        blur(36px)
+        saturate(205%)
+        brightness(1.08);
+    }
+  }
+
+  @media (max-width: 600px) {
+    html {
+      background:
+        radial-gradient(
+          circle at 4% 4%,
+          rgba(90, 200, 250, 0.52),
+          transparent 28%
+        ),
+        radial-gradient(
+          circle at 92% 20%,
+          rgba(191, 90, 242, 0.22),
+          transparent 26%
+        ),
+        linear-gradient(
+          160deg,
+          #edf8ff,
+          #f8f8fc
+        ) !important;
+    }
+
+    .filters,
+    .kpi-card,
+    .panel {
+      background:
+        linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.18),
+          rgba(255, 255, 255, 0.08)
+        ) !important;
+    }
+  }
+</style>
+
 </head>
 
 <body>
