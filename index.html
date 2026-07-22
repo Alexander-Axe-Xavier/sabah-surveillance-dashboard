@@ -1244,6 +1244,153 @@
       }
     }
 
+
+    /* ===== Refined clinical trend + district ranking layout ===== */
+
+    .clinical-dashboard-grid {
+      display: grid;
+      grid-template-columns:
+        minmax(0, 1.75fr)
+        minmax(340px, 1fr);
+      gap: 16px;
+      align-items: stretch;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .clinical-dashboard-grid > .panel {
+      min-width: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .clinical-dashboard-grid > .panel:first-child {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .clinical-dashboard-grid > .panel:first-child .panel-body,
+    .clinical-dashboard-grid > .panel:first-child #mainChart {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+
+    .clinical-dashboard-grid > #primaryRankingPanel {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .clinical-dashboard-grid > #primaryRankingPanel #rankingContainer {
+      flex: 1 1 auto;
+      overflow-x: auto;
+      overflow-y: auto;
+      max-height: 520px;
+    }
+
+    .clinical-dashboard-grid .ranking-table {
+      width: 100%;
+      min-width: 620px;
+      table-layout: fixed;
+    }
+
+    .clinical-dashboard-grid .ranking-table th,
+    .clinical-dashboard-grid .ranking-table td {
+      padding: 10px 8px;
+      vertical-align: middle;
+    }
+
+    .clinical-dashboard-grid .ranking-table th:nth-child(1),
+    .clinical-dashboard-grid .ranking-table td:nth-child(1) {
+      width: 44px;
+      text-align: center;
+    }
+
+    .clinical-dashboard-grid .ranking-table th:nth-child(2),
+    .clinical-dashboard-grid .ranking-table td:nth-child(2) {
+      width: 27%;
+    }
+
+    .clinical-dashboard-grid .ranking-table th:nth-child(3),
+    .clinical-dashboard-grid .ranking-table td:nth-child(3) {
+      width: 31%;
+    }
+
+    .clinical-dashboard-grid .ranking-table th:nth-child(4),
+    .clinical-dashboard-grid .ranking-table td:nth-child(4) {
+      width: 24%;
+    }
+
+    .clinical-dashboard-grid .ranking-table th:nth-child(5),
+    .clinical-dashboard-grid .ranking-table td:nth-child(5) {
+      width: 18%;
+    }
+
+    .clinical-dashboard-grid .case-bar-cell {
+      grid-template-columns:
+        minmax(70px, 1fr)
+        minmax(36px, auto);
+      gap: 8px;
+    }
+
+    .clinical-dashboard-grid .district-name {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .clinical-dashboard-grid .ranking-summary {
+      padding: 10px 12px 0;
+    }
+
+    .clinical-dashboard-grid .ranking-period-chip {
+      font-size: 0.72rem;
+    }
+
+    .clinical-dashboard-grid .change-badge {
+      padding: 0 8px;
+      min-height: 28px;
+      font-size: 0.72rem;
+    }
+
+    .clinical-dashboard-grid .chart-axis-shell {
+      min-width: 0;
+    }
+
+    .clinical-dashboard-grid .time-chart-shell {
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .clinical-dashboard-grid .time-chart-plot {
+      width: 100%;
+      min-width: 0;
+    }
+
+    @media (max-width: 1280px) {
+      .clinical-dashboard-grid {
+        grid-template-columns:
+          minmax(0, 1.55fr)
+          minmax(320px, 1fr);
+      }
+
+      .clinical-dashboard-grid .ranking-table {
+        min-width: 580px;
+      }
+    }
+
+    @media (max-width: 1080px) {
+      .clinical-dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .clinical-dashboard-grid > #primaryRankingPanel #rankingContainer {
+        max-height: none;
+      }
+
+      .clinical-dashboard-grid .ranking-table {
+        min-width: 760px;
+      }
+    }
+
 </style>
 </head>
 
