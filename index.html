@@ -2188,6 +2188,197 @@ select,button,.view-tab{background:rgba(255,255,255,.5)!important;border:1px sol
   }
 </style>
 
+
+<style id="axis-titles-outside-at-ends">
+  /*
+   * Axis titles are positioned outside the plotting region:
+   *
+   * Y-axis title -> above the upper end of the vertical axis
+   * X-axis title -> beyond the right end of the horizontal axis
+   *
+   * This applies to all clinical and laboratory trend charts.
+   */
+
+  .chart-axis-shell {
+    --axis-left-space: 58px;
+    --axis-top-space: 34px;
+    --axis-bottom-space: 42px;
+    --axis-right-space: 120px;
+
+    position: relative;
+    width: 100%;
+    padding-left: var(--axis-left-space) !important;
+    padding-top: var(--axis-top-space) !important;
+    padding-right: var(--axis-right-space) !important;
+    padding-bottom: var(--axis-bottom-space) !important;
+    overflow: visible !important;
+  }
+
+  /*
+   * Y-axis title:
+   * horizontal and positioned above the top end of the Y-axis.
+   */
+  .chart-y-axis-title {
+    position: absolute !important;
+    left: var(--axis-left-space) !important;
+    top: 7px !important;
+    width: auto !important;
+    max-width:
+      calc(
+        100% -
+        var(--axis-left-space) -
+        12px
+      );
+    transform: none !important;
+    transform-origin: initial !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 0.76rem !important;
+    font-weight: 850 !important;
+    line-height: 1.15 !important;
+    color: var(--lg-muted, var(--muted)) !important;
+    text-align: left !important;
+    white-space: nowrap !important;
+    letter-spacing: 0.02em !important;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /*
+   * X-axis title:
+   * positioned outside the right end of the horizontal axis.
+   */
+  .chart-x-axis-title {
+    position: absolute !important;
+    right: 8px !important;
+    left: auto !important;
+    bottom: 7px !important;
+    width:
+      calc(
+        var(--axis-right-space) -
+        14px
+      );
+    transform: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 0.76rem !important;
+    font-weight: 850 !important;
+    line-height: 1.15 !important;
+    color: var(--lg-muted, var(--muted)) !important;
+    text-align: right !important;
+    white-space: normal !important;
+    letter-spacing: 0.02em !important;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /*
+   * Align Y-axis numbers and gridlines with the newly padded plot.
+   */
+  .chart-y-ticks {
+    left: 8px !important;
+    top:
+      calc(
+        var(--axis-top-space) +
+        8px
+      ) !important;
+    bottom: auto !important;
+    width:
+      calc(
+        var(--axis-left-space) -
+        14px
+      ) !important;
+    height: var(--clinical-plot-height, 320px) !important;
+  }
+
+  .chart-gridlines {
+    left: var(--axis-left-space) !important;
+    right: var(--axis-right-space) !important;
+    top:
+      calc(
+        var(--axis-top-space) +
+        8px
+      ) !important;
+    bottom: auto !important;
+    height: var(--clinical-plot-height, 320px) !important;
+  }
+
+  .time-chart-shell {
+    width: 100% !important;
+    min-width: 0 !important;
+    padding:
+      8px
+      0
+      14px
+      0 !important;
+    overflow: visible !important;
+  }
+
+  /*
+   * Keep chart labels and titles readable within side-by-side panels.
+   */
+  .clinical-dashboard-grid .chart-axis-shell,
+  .main-grid.clinical-layout .chart-axis-shell,
+  .main-grid.lab-layout .chart-axis-shell {
+    min-width: 0;
+  }
+
+  @media (max-width: 1100px) {
+    .chart-axis-shell {
+      --axis-left-space: 54px;
+      --axis-right-space: 108px;
+    }
+  }
+
+  @media (max-width: 700px) {
+    .chart-axis-shell {
+      --axis-left-space: 46px;
+      --axis-top-space: 30px;
+      --axis-bottom-space: 48px;
+      --axis-right-space: 12px;
+
+      padding-left: var(--axis-left-space) !important;
+      padding-top: var(--axis-top-space) !important;
+      padding-right: var(--axis-right-space) !important;
+      padding-bottom: var(--axis-bottom-space) !important;
+    }
+
+    /*
+     * On smartphones the X-axis title remains outside the chart,
+     * but moves below the right end to avoid narrowing the plot.
+     */
+    .chart-x-axis-title {
+      right: var(--axis-right-space) !important;
+      bottom: 7px !important;
+      width: auto !important;
+      max-width: 72%;
+      font-size: 0.66rem !important;
+      text-align: right !important;
+      white-space: normal !important;
+    }
+
+    .chart-y-axis-title {
+      left: var(--axis-left-space) !important;
+      top: 6px !important;
+      font-size: 0.66rem !important;
+    }
+
+    .chart-y-ticks {
+      left: 2px !important;
+      width:
+        calc(
+          var(--axis-left-space) -
+          6px
+        ) !important;
+    }
+
+    .chart-gridlines {
+      left: var(--axis-left-space) !important;
+      right: var(--axis-right-space) !important;
+    }
+  }
+</style>
+
 </head>
 
 <body>
