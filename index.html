@@ -1024,6 +1024,47 @@
       }
     }
 
+
+    .lab-trend-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+      width: 100%;
+    }
+
+    .lab-trend-panel {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--panel-soft);
+      overflow: hidden;
+    }
+
+    .lab-trend-panel-header {
+      padding: 14px 16px 4px;
+    }
+
+    .lab-trend-panel-header h3 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .lab-trend-panel-header p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 0.76rem;
+    }
+
+    .lab-trend-chart {
+      min-height: 420px;
+      background: var(--panel);
+    }
+
+    .lab-series-note {
+      padding: 6px 16px 12px;
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+
   </style>
 </head>
 
@@ -1210,7 +1251,8 @@
       autoRefreshMinutes: 5,
       autoRefreshTimer: null,
       rankingRequestId: 0,
-      labKpiRequestId: 0
+      labKpiRequestId: 0,
+      labTrendRequestId: 0
     };
 
     const MODULE_CONFIG = {
@@ -3012,6 +3054,15 @@
       const records =
         getCurrentRecords();
 
+      if (
+        APP.module === 'ILIL' ||
+        APP.module === 'SARIL' ||
+        APP.module === 'EVL'
+      ) {
+        renderLaboratoryPositiveTrends();
+        return;
+      }
+
       ELEMENTS.chartTitle.textContent =
         (
           APP.module === 'ILIC' &&
@@ -3036,6 +3087,614 @@
       drawVerticalTimeBarChart(
         records,
         analysis
+      );
+    }
+
+
+    async function renderLaboratoryPositiveTrends() {
+      const requestId =
+        ++APP.labTrendRequestId;
+
+      const moduleLabel =
+        MODULE_CONFIG[
+          APP.module
+        ].label;
+
+      ELEMENTS.chartTitle.textContent =
+        'Positive laboratory trends';
+
+      ELEMENTS.chartSubtitle.textContent =
+        buildSubtitle();
+
+      ELEMENTS.viewTabs.innerHTML =
+        '';
+
+      ELEMENTS.mainChart.innerHTML =
+        '<div class="empty-state">' +
+          '<div>Loading positive sentinel and aetiology trends…</div>' +
+        '</div>';
+
+      try {
+        const payload =
+          await apiRequest({
+            api:
+              'lab-positive-trend',
+
+            module:
+              APP.module,
+
+            district:
+              APP.district,
+
+            facility:
+              APP.facility
+          });
+
+        if (
+          requestId !==
+          APP.labTrendRequestId
+        ) {
+          return;
+        }
+
+        const periods =
+          buildCompleteLabPeriods(
+            payload.periodType,
+            payload.authoritativePeriod
+          );
+
+        const sentinelChart =
+          buildLaboratoryStackedChartHtml(
+            periods,
+            payload.sentinelSeries || [],
+            {
+              title:
+                'Positive Samples by Sentinel',
+
+              description:
+                'Only positive specimens are included. Sentinels are ordered by total positive samples.',
+
+              yAxisTitle:
+                'Total Positive Samples',
+
+              xAxisTitle:
+                payload.periodType ===
+                  'MONTHLY'
+                  ? 'Calendar Month'
+                  : 'Epidemiological Week',
+
+              maximumSeries:
+                20
+            }
+          );
+
+        const aetiologyChart =
+          buildLaboratoryStackedChartHtml(
+            periods,
+            payload.aetiologySeries || [],
+            {
+              title:
+                'Positive Aetiology Distribution',
+
+              description:
+                'Positive aetiologies are ordered by total positive samples.',
+
+              yAxisTitle:
+                'Total Positive Samples',
+
+              xAxisTitle:
+                payload.periodType ===
+                  'MONTHLY'
+                  ? 'Calendar Month'
+                  : 'Epidemiological Week',
+
+              maximumSeries:
+                12
+            }
+          );
+
+        ELEMENTS.mainChart.innerHTML =
+          '<div class="lab-trend-grid">' +
+            sentinelChart +
+            aetiologyChart +
+          '</div>';
+
+      } catch (error) {
+        if (
+          requestId !==
+          APP.labTrendRequestId
+        ) {
+          return;
+        }
+
+        ELEMENTS.mainChart.innerHTML =
+          '<div class="error-state">' +
+            '<div><strong>Laboratory trend error</strong><br>' +
+              escapeHtml(
+                error && error.message
+                  ? error.message
+                  : String(error)
+              ) +
+            '</div>' +
+          '</div>';
+      }
+    }
+
+
+    function buildCompleteLabPeriods(
+      periodType,
+      authoritativePeriod
+    ) {
+      const periods = [];
+
+      const year =
+        authoritativePeriod
+          ? authoritativePeriod.substring(
+              0,
+              4
+            )
+          : String(
+              new Date().getFullYear()
+            );
+
+      if (
+        periodType ===
+          'MONTHLY'
+      ) {
+        for (
+          let month = 1;
+          month <= 12;
+          month++
+        ) {
+          periods.push(
+            year +
+            '-' +
+            String(
+              month
+            ).padStart(
+              2,
+              '0'
+            )
+          );
+        }
+
+      } else {
+        for (
+          let week = 1;
+          week <= 52;
+          week++
+        ) {
+          periods.push(
+            year +
+            '-W' +
+            String(
+              week
+            ).padStart(
+              2,
+              '0'
+            )
+          );
+        }
+      }
+
+      return periods;
+    }
+
+
+    function buildLaboratoryStackedChartHtml(
+      periods,
+      rawSeries,
+      options
+    ) {
+      const series =
+        rawSeries
+          .filter(
+            function (item) {
+              return (
+                Number(
+                  item.total || 0
+                ) >
+                0
+              );
+            }
+          )
+          .sort(
+            function (
+              left,
+              right
+            ) {
+              return (
+                Number(
+                  right.total || 0
+                ) -
+                Number(
+                  left.total || 0
+                )
+              );
+            }
+          )
+          .slice(
+            0,
+            options.maximumSeries
+          );
+
+      if (!series.length) {
+        return (
+          '<section class="lab-trend-panel">' +
+            '<div class="lab-trend-panel-header">' +
+              '<h3>' +
+                escapeHtml(
+                  options.title
+                ) +
+              '</h3>' +
+              '<p>' +
+                escapeHtml(
+                  options.description
+                ) +
+              '</p>' +
+            '</div>' +
+            '<div class="empty-state">' +
+              '<div>No positive records are available for this selection.</div>' +
+            '</div>' +
+          '</section>'
+        );
+      }
+
+      let maximumTotal = 0;
+
+      periods.forEach(
+        function (period) {
+          const total =
+            series.reduce(
+              function (
+                sum,
+                item
+              ) {
+                return (
+                  sum +
+                  Number(
+                    item.values &&
+                    item.values[
+                      period
+                    ]
+                      ? item.values[
+                          period
+                        ]
+                      : 0
+                  )
+                );
+              },
+              0
+            );
+
+          maximumTotal =
+            Math.max(
+              maximumTotal,
+              total
+            );
+        }
+      );
+
+      const axisMaximum =
+        getNiceAxisMaximum(
+          maximumTotal
+        );
+
+      const ticks =
+        buildYAxisScale(
+          axisMaximum,
+          5
+        );
+
+      const colours = [
+        '#1d5f8a',
+        '#18a27b',
+        '#d89b2b',
+        '#8c5fb5',
+        '#c94f4f',
+        '#3f7fc4',
+        '#6b8e23',
+        '#d16d9e',
+        '#7c6f64',
+        '#4b9b9b',
+        '#9966cc',
+        '#cc7a00',
+        '#4c7a99',
+        '#7a4c99',
+        '#99804c',
+        '#4c9966',
+        '#994c66',
+        '#666699',
+        '#5d8a8a',
+        '#8a5d5d'
+      ];
+
+      const bars =
+        periods.map(
+          function (
+            period,
+            periodIndex
+          ) {
+            const total =
+              series.reduce(
+                function (
+                  sum,
+                  item
+                ) {
+                  return (
+                    sum +
+                    Number(
+                      item.values &&
+                      item.values[
+                        period
+                      ]
+                        ? item.values[
+                            period
+                          ]
+                        : 0
+                    )
+                  );
+                },
+                0
+              );
+
+            const stackHeight =
+              axisMaximum >
+                0
+                ? (
+                    total /
+                    axisMaximum
+                  ) *
+                  100
+                : 0;
+
+            const segments =
+              series.map(
+                function (
+                  item,
+                  index
+                ) {
+                  const value =
+                    Number(
+                      item.values &&
+                      item.values[
+                        period
+                      ]
+                        ? item.values[
+                            period
+                          ]
+                        : 0
+                    );
+
+                  const segmentHeight =
+                    total >
+                      0
+                      ? (
+                          value /
+                          total
+                        ) *
+                        100
+                      : 0;
+
+                  return (
+                    '<div class="time-bar" ' +
+                      'style="height:' +
+                        segmentHeight.toFixed(
+                          3
+                        ) +
+                        '%;background:' +
+                        colours[
+                          index %
+                          colours.length
+                        ] +
+                      '" title="' +
+                        escapeHtml(
+                          item.name +
+                          ' · ' +
+                          period +
+                          ' · Positive samples: ' +
+                          formatNumber(
+                            value
+                          )
+                        ) +
+                    '"></div>'
+                  );
+                }
+              )
+              .join('');
+
+            const major =
+              periods.length ===
+                12 ||
+              periodIndex ===
+                0 ||
+              (
+                periodIndex + 1
+              ) %
+                4 ===
+                0 ||
+              periodIndex ===
+                periods.length -
+                1;
+
+            return (
+              '<div class="time-period-group">' +
+                '<div class="time-bars">' +
+                  '<div class="time-stack" style="height:' +
+                    Math.max(
+                      0,
+                      Math.min(
+                        100,
+                        stackHeight
+                      )
+                    ).toFixed(
+                      2
+                    ) +
+                  '%">' +
+                    segments +
+                  '</div>' +
+                '</div>' +
+                '<div class="time-period-label' +
+                  (
+                    major
+                      ? ' major'
+                      : ''
+                  ) +
+                '">' +
+                  escapeHtml(
+                    String(
+                      periodIndex + 1
+                    )
+                  ) +
+                '</div>' +
+              '</div>'
+            );
+          }
+        )
+        .join('');
+
+      const tickLabels =
+        ticks.map(
+          function (tick) {
+            return (
+              '<div class="chart-y-tick" style="bottom:' +
+                tick.bottomPercent.toFixed(
+                  2
+                ) +
+              '%">' +
+                escapeHtml(
+                  formatNumber(
+                    tick.value
+                  )
+                ) +
+              '</div>'
+            );
+          }
+        )
+        .join('');
+
+      const gridlines =
+        ticks
+          .filter(
+            function (tick) {
+              return (
+                tick.value >
+                0
+              );
+            }
+          )
+          .map(
+            function (tick) {
+              return (
+                '<div class="chart-gridline" style="bottom:' +
+                  tick.bottomPercent.toFixed(
+                    2
+                  ) +
+                '%"></div>'
+              );
+            }
+          )
+          .join('');
+
+      const legend =
+        series.map(
+          function (
+            item,
+            index
+          ) {
+            return (
+              '<span class="legend-item">' +
+                '<span class="legend-swatch" style="background:' +
+                  colours[
+                    index %
+                    colours.length
+                  ] +
+                '"></span>' +
+                escapeHtml(
+                  item.name
+                ) +
+                ' (' +
+                escapeHtml(
+                  formatNumber(
+                    item.total
+                  )
+                ) +
+                ')' +
+              '</span>'
+            );
+          }
+        )
+        .join('');
+
+      const hiddenCount =
+        Math.max(
+          0,
+          rawSeries.length -
+          series.length
+        );
+
+      return (
+        '<section class="lab-trend-panel">' +
+          '<div class="lab-trend-panel-header">' +
+            '<h3>' +
+              escapeHtml(
+                options.title
+              ) +
+            '</h3>' +
+            '<p>' +
+              escapeHtml(
+                options.description
+              ) +
+            '</p>' +
+          '</div>' +
+          '<div class="lab-trend-chart">' +
+            '<div class="chart-axis-shell">' +
+              '<div class="chart-y-axis-title">' +
+                escapeHtml(
+                  options.yAxisTitle
+                ) +
+              '</div>' +
+              '<div class="chart-y-ticks">' +
+                tickLabels +
+              '</div>' +
+              '<div class="chart-gridlines">' +
+                gridlines +
+              '</div>' +
+              '<div class="time-chart-shell">' +
+                '<div class="time-chart">' +
+                  '<div class="time-chart-plot" style="grid-template-columns:repeat(' +
+                    periods.length +
+                    ',minmax(0,1fr))">' +
+                    bars +
+                  '</div>' +
+                  '<div>' +
+                    '<div class="chart-legend">' +
+                      legend +
+                    '</div>' +
+                    (
+                      hiddenCount >
+                        0
+                        ? (
+                            '<div class="lab-series-note">' +
+                              escapeHtml(
+                                hiddenCount +
+                                ' lower-volume series are hidden to keep the chart readable.'
+                              ) +
+                            '</div>'
+                          )
+                        : ''
+                    ) +
+                  '</div>' +
+                '</div>' +
+              '</div>' +
+              '<div class="chart-x-axis-title">' +
+                escapeHtml(
+                  options.xAxisTitle
+                ) +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</section>'
       );
     }
 
