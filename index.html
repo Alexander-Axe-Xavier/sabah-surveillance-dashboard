@@ -2987,21 +2987,58 @@
           },
           {
             label:
-              'Total Positive (' +
-              formatNumber(
-                payload.highestPositiveRate || 0
-              ) +
-              '%)',
+              APP.module ===
+                'EVL'
+                ? (
+                    'Total Positive — ' +
+                    String(
+                      new Date().getFullYear()
+                    ) +
+                    ' (' +
+                    formatNumber(
+                      payload.currentYearPositivityRate || 0
+                    ) +
+                    '%)'
+                  )
+                : (
+                    'Total Positive (' +
+                    formatNumber(
+                      payload.highestPositiveRate || 0
+                    ) +
+                    '%)'
+                  ),
 
             value:
               formatNumber(
                 Math.round(
-                  payload.highestPositiveSamples || 0
+                  APP.module ===
+                    'EVL'
+                    ? (
+                        payload.currentYearPositiveSamples || 0
+                      )
+                    : (
+                        payload.highestPositiveSamples || 0
+                      )
                 )
               ),
 
             foot:
-              highestFoot
+              APP.module ===
+                'EVL'
+                ? (
+                    selectedArea +
+                    ' · ' +
+                    formatNumber(
+                      Math.round(
+                        payload.currentYearTestedSamples || 0
+                      )
+                    ) +
+                    ' tested in ' +
+                    String(
+                      new Date().getFullYear()
+                    )
+                  )
+                : highestFoot
           }
         ];
 
