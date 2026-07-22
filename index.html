@@ -1209,7 +1209,8 @@
       apiUrl: '',
       autoRefreshMinutes: 5,
       autoRefreshTimer: null,
-      rankingRequestId: 0
+      rankingRequestId: 0,
+      labKpiRequestId: 0
     };
 
     const MODULE_CONFIG = {
@@ -2294,6 +2295,15 @@
 
 
     function renderKpis() {
+      if (
+        APP.module === 'ILIL' ||
+        APP.module === 'SARIL' ||
+        APP.module === 'EVL'
+      ) {
+        renderLabSampleKpis();
+        return;
+      }
+
       const analysis =
         getCurrentAnalysisConfig();
 
@@ -2657,6 +2667,299 @@
         }
       );
     }
+
+    async function renderLabSampleKpis() {
+      const requestId =
+        ++APP.labKpiRequestId;
+
+      const analysis =
+        getCurrentAnalysisConfig();
+
+      const moduleLabel =
+        MODULE_CONFIG[
+          APP.module
+        ].label;
+
+      const isMonthly =
+        APP.module ===
+          'EVL';
+
+      const selectedArea =
+        APP.facility
+          ? (
+              ELEMENTS
+                .facilitySelect
+                .options[
+                  ELEMENTS
+                    .facilitySelect
+                    .selectedIndex
+                ]
+                .text ||
+              APP.facility
+            )
+          : APP.district
+            ? (
+                ELEMENTS
+                  .districtSelect
+                  .options[
+                    ELEMENTS
+                      .districtSelect
+                      .selectedIndex
+                  ]
+                  .text ||
+                APP.district
+              )
+            : 'Sabah';
+
+      ELEMENTS.kpiGrid.innerHTML =
+        [
+          {
+            label:
+              'Selected module',
+
+            value:
+              moduleLabel,
+
+            foot:
+              analysis.label
+          },
+          {
+            label:
+              isMonthly
+                ? 'Current month'
+                : 'Current period',
+
+            value:
+              '…',
+
+            foot:
+              selectedArea
+          },
+          {
+            label:
+              'Current Total Samples Taken',
+
+            value:
+              '…',
+
+            foot:
+              'Loading sample totals'
+          },
+          {
+            label:
+              isMonthly
+                ? 'Highest Monthly Samples Taken'
+                : 'Highest Weekly Samples Taken',
+
+            value:
+              '…',
+
+            foot:
+              'Loading historical maximum'
+          }
+        ]
+          .map(
+            function (card) {
+              return (
+                '<article class="kpi-card">' +
+                  '<div class="kpi-label">' +
+                    escapeHtml(
+                      card.label
+                    ) +
+                  '</div>' +
+                  '<div class="kpi-value">' +
+                    escapeHtml(
+                      card.value
+                    ) +
+                  '</div>' +
+                  '<div class="kpi-foot">' +
+                    escapeHtml(
+                      card.foot
+                    ) +
+                  '</div>' +
+                '</article>'
+              );
+            }
+          )
+          .join('');
+
+      try {
+        const payload =
+          await apiRequest({
+            api:
+              'lab-sample-kpi',
+
+            module:
+              APP.module,
+
+            district:
+              APP.district,
+
+            facility:
+              APP.facility
+          });
+
+        if (
+          requestId !==
+          APP.labKpiRequestId
+        ) {
+          return;
+        }
+
+        const periodLabel =
+          payload.authoritativePeriod ||
+          '—';
+
+        const currentFoot =
+          payload.dataPeriod
+            ? (
+                selectedArea +
+                ' · ' +
+                payload.dataPeriod +
+                (
+                  payload.usedLatestAvailable
+                    ? ' · latest available data'
+                    : ''
+                )
+              )
+            : (
+                'No sample data for ' +
+                selectedArea
+              );
+
+        const highestFoot =
+          payload.highestPeriod
+            ? (
+                selectedArea +
+                ' · ' +
+                payload.highestPeriod
+              )
+            : (
+                'No historical sample data for ' +
+                selectedArea
+              );
+
+        const cards = [
+          {
+            label:
+              'Selected module',
+
+            value:
+              moduleLabel,
+
+            foot:
+              analysis.label
+          },
+          {
+            label:
+              isMonthly
+                ? 'Current month'
+                : 'Current period',
+
+            value:
+              periodLabel,
+
+            foot:
+              selectedArea
+          },
+          {
+            label:
+              'Current Total Samples Taken',
+
+            value:
+              formatNumber(
+                Math.round(
+                  payload.currentSamples || 0
+                )
+              ),
+
+            foot:
+              currentFoot
+          },
+          {
+            label:
+              isMonthly
+                ? (
+                    'Highest Monthly Samples Taken — ' +
+                    (
+                      payload.highestPeriod ||
+                      '—'
+                    )
+                  )
+                : (
+                    'Highest Weekly Samples Taken — ' +
+                    (
+                      payload.highestPeriod
+                        ? payload.highestPeriod.replace(
+                            /^\d{4}-W/,
+                            'W'
+                          )
+                        : '—'
+                    )
+                  ),
+
+            value:
+              formatNumber(
+                Math.round(
+                  payload.highestSamples || 0
+                )
+              ),
+
+            foot:
+              highestFoot
+          }
+        ];
+
+        ELEMENTS.kpiGrid.innerHTML =
+          cards
+            .map(
+              function (card) {
+                return (
+                  '<article class="kpi-card">' +
+                    '<div class="kpi-label">' +
+                      escapeHtml(
+                        card.label
+                      ) +
+                    '</div>' +
+                    '<div class="kpi-value">' +
+                      escapeHtml(
+                        card.value
+                      ) +
+                    '</div>' +
+                    '<div class="kpi-foot">' +
+                      escapeHtml(
+                        card.foot
+                      ) +
+                    '</div>' +
+                  '</article>'
+                );
+              }
+            )
+            .join('');
+
+      } catch (error) {
+        if (
+          requestId !==
+          APP.labKpiRequestId
+        ) {
+          return;
+        }
+
+        ELEMENTS.kpiGrid.innerHTML =
+          '<article class="kpi-card">' +
+            '<div class="kpi-label">Laboratory KPI error</div>' +
+            '<div class="kpi-value">—</div>' +
+            '<div class="kpi-foot">' +
+              escapeHtml(
+                error && error.message
+                  ? error.message
+                  : String(error)
+              ) +
+            '</div>' +
+          '</article>';
+      }
+    }
+
 
     function renderViewTabs() {
       const scopes = [
